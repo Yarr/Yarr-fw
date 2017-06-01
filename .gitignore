@@ -1,0 +1,17 @@
+Makefile
+*.bit
+*.log
+*.jou
+*.xpr
+*.tcl
+*.cache
+*.hw
+*.ip_user_files
+*.runs
+*.swp
+*.mcs
+*.prm
+bitstream
+par
+project
+synthesize
