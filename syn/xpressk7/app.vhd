@@ -45,7 +45,8 @@ entity app is
         wb_data_width_c : integer := 32;
         DEBUG_C : std_logic_vector(3 downto 0) := "1111";
         address_mask_c : STD_LOGIC_VECTOR(32-1 downto 0) := X"000FFFFF";
-        DMA_MEMORY_SELECTED : string := "DDR3" -- DDR3, BRAM
+        DMA_MEMORY_SELECTED : string := "DDR3"; -- DDR3, BRAM
+        wb_dev_g : std_logic := '1'
         );
     Port ( clk_i : in STD_LOGIC;
            sys_clk_n_i : IN STD_LOGIC;
@@ -144,7 +145,7 @@ architecture Behavioral of app is
     -- Constants declaration
     ------------------------------------------------------------------------------
 
-    constant wb_dev_c : std_logic := '1';
+
     
     --TODO
     constant c_BAR0_APERTURE    : integer := 18;  -- nb of bits for 32-bit word address
@@ -666,7 +667,7 @@ begin
             wb_stall_i => wb_stall_s
             );   
         
-nwb_dev_gen : if wb_dev_c = '0' generate 
+nwb_dev_gen : if wb_dev_g = '0' generate 
 
 -- Differential buffers
 	tx_loop: for I in 0 to c_TX_CHANNELS-1 generate
@@ -695,7 +696,7 @@ end generate nwb_dev_gen;
 
 
         
-wb_dev_gen : if wb_dev_c = '1' generate        
+wb_dev_gen : if wb_dev_g = '1' generate        
 
 
 -- Differential buffers

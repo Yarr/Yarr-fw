@@ -17,6 +17,7 @@ files = [
 "mig_7series_0/mig_a.prj",
 "mig_7series_0/mig_b.prj",
 "pcie_7x_0/pcie_7x_0.xci",
+"pcie_7x_t/pcie_7x_t.xci",
 "tx_fifo/tx_fifo.xci",
 "rx_channel_fifo/rx_channel_fifo.xci",
 "rx_bridge_ctrl_fifo/rx_bridge_ctrl_fifo.xci",
