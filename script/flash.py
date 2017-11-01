@@ -128,7 +128,7 @@ if (bit_file != None):
 	if cmds != None:
 		script_file.write(cmds)
 		script_file.flush()
-		subprocess.call(["vivado", "-mode", "batch","-source", script_path])
+		subprocess.call(["vivado_lab", "-mode", "batch","-source", script_path])
 else:
 	print "No bit file has been written into the FPGA !"
 """
@@ -143,5 +143,5 @@ if (bit_file != None):
 	script_file.flush()
 	script_file.close()
 
-	subprocess.call(["vivado", "-mode", "batch","-source", script_path])
+	subprocess.call(["vivado_lab", "-mode", "batch","-source", script_path])
 
