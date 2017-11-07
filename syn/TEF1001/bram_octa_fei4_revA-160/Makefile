@@ -7,8 +7,8 @@ TOP_MODULE := top_level
 PWD := $(shell pwd)
 PROJECT := yarr
 PROJECT_FILE := $(PROJECT).xpr
-TOOL_PATH := /opt/Xilinx/Vivado/2016.2/bin
-TCL_INTERPRETER := vivado -mode tcl -source
+TOOL_PATH := /opt/Xilinx/Vivado_Lab/2017.2/bin/
+TCL_INTERPRETER := vivado_lab -mode tcl -source
 ifneq ($(strip $(TOOL_PATH)),)
 TCL_INTERPRETER := $(TOOL_PATH)/$(TCL_INTERPRETER)
 endif
