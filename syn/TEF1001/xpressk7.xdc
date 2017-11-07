@@ -3,8 +3,8 @@ set_property IOSTANDARD LVDS [get_ports clk200_n]
 set_property IOSTANDARD LVDS [get_ports clk200_p]
 set_property PACKAGE_PIN AC9 [get_ports clk200_p]
 set_property PACKAGE_PIN AD9 [get_ports clk200_n]
-set_property PACKAGE_PIN K6 [get_ports pcie_clk_p]
-set_property PACKAGE_PIN K5 [get_ports pcie_clk_n]
+set_property PACKAGE_PIN D6 [get_ports pcie_clk_p]
+set_property PACKAGE_PIN D5 [get_ports pcie_clk_n]
 
 
 #On-board switch reset
