@@ -20,4 +20,3 @@ set_property PACKAGE_PIN U7 [get_ports PCIE_REFCLK_N]
 
 set_max_delay -to [get_pins app_0/wb_exp_comp/cfg_interrupt_s_reg/CLR] 8.000
 
-

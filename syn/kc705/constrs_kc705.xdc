@@ -15,8 +15,20 @@ set_property PACKAGE_PIN U8 [get_ports PCIE_REFCLK_P]
 set_property PACKAGE_PIN U7 [get_ports PCIE_REFCLK_N]
 
 set_property IOSTANDARD LVCMOS25 [get_ports sys_rst_n_i]
-set_property PULLUP true [get_ports sys_rst_n_i]
 set_property LOC G25 [get_ports sys_rst_n_i]
+
+set_property LOC GTXE2_CHANNEL_X0Y7 [get_cells {pcie_0/U0/inst/gt_top_i/pipe_wrapper_i/pipe_lane[0].gt_wrapper_i/gtx_channel.gtxe2_channel_i}]
+set_property PACKAGE_PIN M5 [get_ports {PCIE_RXN[0]}]
+set_property PACKAGE_PIN M6 [get_ports {PCIE_RXP[0]}]
+set_property LOC GTXE2_CHANNEL_X0Y6 [get_cells {pcie_0/U0/inst/gt_top_i/pipe_wrapper_i/pipe_lane[1].gt_wrapper_i/gtx_channel.gtxe2_channel_i}]
+set_property PACKAGE_PIN P5 [get_ports {PCIE_RXN[1]}]
+set_property PACKAGE_PIN P6 [get_ports {PCIE_RXP[1]}]
+set_property LOC GTXE2_CHANNEL_X0Y5 [get_cells {pcie_0/U0/inst/gt_top_i/pipe_wrapper_i/pipe_lane[2].gt_wrapper_i/gtx_channel.gtxe2_channel_i}]
+set_property PACKAGE_PIN R3 [get_ports {PCIE_RXN[2]}]
+set_property PACKAGE_PIN R4 [get_ports {PCIE_RXP[2]}]
+set_property LOC GTXE2_CHANNEL_X0Y4 [get_cells {pcie_0/U0/inst/gt_top_i/pipe_wrapper_i/pipe_lane[3].gt_wrapper_i/gtx_channel.gtxe2_channel_i}]
+set_property PACKAGE_PIN T5 [get_ports {PCIE_RXN[3]}]
+set_property PACKAGE_PIN T6 [get_ports {PCIE_RXP[3]}]
 
 ## GPIO PUSHBUTTON SW
 
