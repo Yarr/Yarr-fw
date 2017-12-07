@@ -1,5 +1,0 @@
- -d */ | xargs -I % cp .gitignore %.
-*
-!*.xci
-!*.prj
-!.gitignore
