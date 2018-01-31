@@ -40,9 +40,12 @@ Software:
 
 ## How-to-Use
 
-1. Configure ready_to_test/ddr3_kc705.mcs
+Two ways.
+
+- Configure ready_to_test/ddr3_kc705.mcs
     - FMC-LPC supports [VHDCI_to_8xRJ45_FE_I4_Rev_A](https://twiki.cern.ch/twiki/bin/view/Main/TimonHeim?forceShow=1#VHDCI_to_8xRJ45_FE_I4_Rev_A)
-2. Rebuild your vivado project. 
+- Rebuild your vivado project. 
+    - If the above way does not work, I recommend this way. Please report your problem.
 
 <a name="licence"></a>
 
