@@ -17,3 +17,6 @@ bitstream
 par
 project
 synthesize
+
+# allow any
+!*create_yarr_FEI4_kc705_project.tcl
