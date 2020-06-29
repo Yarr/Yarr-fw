@@ -561,7 +561,7 @@ begin
         locked => pll_200_locked_s            
       );
     
-    wb_clk_s <= clk_160_s;
+    wb_clk_s <= clk_i;  --fails timing. To pass timing, use clk_160_s
     
     -- Select RX serdes CLK
     serdes_clk_640_gen: if c_RX_SPEED = "0640" generate
