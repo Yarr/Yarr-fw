@@ -47,6 +47,17 @@ end tx_channel;
 
 architecture rtl of tx_channel is
 	-- Components
+	component handshake
+	port (
+		clk_src     : in std_logic;     --source clock
+        clk_dst     : in std_logic;     --destination clock
+        rst_n_i     : in std_logic;     --active low reset
+        --Signal ports
+        sig_i       : in std_logic;
+        sig_o       : out std_logic
+	);
+	end component;
+
 	component serial_port
 	generic (
         g_PORT_WIDTH : integer := 32
@@ -106,77 +117,15 @@ architecture rtl of tx_channel is
     signal loop_word_bytes_s : std_logic_vector(7 downto 0);
 	
     signal az_word_s : std_logic_vector(31 downto 0);
-    signal az_interval_s : std_logic_vector(15 downto 0);
+	signal az_interval_s : std_logic_vector(15 downto 0);
+	
+	signal sig_handshake_o : std_logic;   --for tx_enable_i handshake
 
-	--signals for tx_enable_i -> enable_i handshake
-    	signal en_prev_req 	: std_logic;
-    	signal en_new_req	: std_logic;
-    	signal en_req 		: std_logic;
-    	signal en_req_pipe	: std_logic;
-    	signal en_ack 		: std_logic;
-    	signal en_prev_ack 	: std_logic;
-    	signal en_ack_pipe 	: std_logic;
-    	signal busy 		: std_logic;
-	signal hs_enable 	: std_logic;
 begin
 
 	-- Write to FiFo
 	tx_fifo_wr <= wb_wr_en_i;
 	tx_fifo_din <= wb_dat_i;
-
-	--Handshake logic
-	--Note: wb_clk_i is source clk, tx_clk_i is dest. clk
-	pr_set_req : process(wb_clk_i, rst_n_i) 
-	begin
-	   if (rst_n_i = '0') then
-		en_req 	<= '0';
-	   elsif(busy = '0' and tx_enable_i = '1') then
-	      	en_req 	<= '1';
-	   elsif(en_prev_ack = '1') then
-	      	en_req 	<= '0';
-	   end if;
-	end process pr_set_req;
-
-	--Process to update old and new request values using 
-	--destination clock domain
-	pr_request : process(tx_clk_i, rst_n_i)
-	begin
-	   if (rst_n_i = '0') then
-		en_prev_req 	<= '0';
-		en_new_req 	<= '0';
-		en_req_pipe	<= '0';
-	   elsif rising_edge(tx_clk_i) then
-		en_prev_req	<= en_new_req;
-		en_new_req 	<= en_req_pipe;
-		en_req_pipe 	<= en_req;
-	   end if;
-	end process pr_request;
-
-	--Process to pass new request to ack. using
-	--source clock domain 
-	pr_ack : process(wb_clk_i, rst_n_i)
-	begin
-	   if (rst_n_i = '0') then
-	      	en_prev_ack 	<= '0';
-		en_ack_pipe	<= '0';
-	   elsif rising_edge(wb_clk_i) then
-	      	en_prev_ack	<= en_ack_pipe;
-	      	en_ack_pipe 	<= en_new_req; 
-	   end if;
-	end process pr_ack;
-
-	--Process to assign intermediate enable signal, hs_enable,
-	--which gets passed to enable_i in cmp_sport port map  
-	pr_enable : process(tx_clk_i, rst_n_i)
-	begin
-	   if (rst_n_i = '0') then
-	      	hs_enable <= '0';
-	   elsif rising_edge(tx_clk_i) then
-	      	hs_enable <= ((not en_prev_req) and (en_new_req));
-	   end if;
-	end process pr_enable;
-
-	busy <= en_req or en_prev_ack; 
 	
 	
 	-- Status outputs
@@ -252,12 +201,20 @@ begin
 	           loop_word_s(95 downto 64) when (loop_cnt = to_unsigned(3, 8)) else
 	           loop_word_s(63 downto 32) when (loop_cnt = to_unsigned(2, 8)) else
                loop_word_s(31 downto 0) when (loop_cnt = to_unsigned(1, 8)) else
-               x"69696969";
+			   x"69696969";
+			   
+	enable_hs: handshake PORT MAP(
+		clk_src => wb_clk_i,
+		clk_dst => tx_clk_i,
+		rst_n_i => rst_n_i,
+		sig_i => tx_enable_i,
+		sig_o => sig_handshake_o
+	);
 	
 	cmp_sport: serial_port PORT MAP(
 		clk_i => tx_clk_i,
 		rst_n_i => rst_n_i,
-		enable_i => hs_enable,   -- previously tx_enable_i,
+		enable_i => sig_handshake_o,   -- previously tx_enable_i,
 		data_i => sport_data,
 		idle_i => c_TX_IDLE_WORD,
 		sync_i => c_TX_SYNC_WORD,
