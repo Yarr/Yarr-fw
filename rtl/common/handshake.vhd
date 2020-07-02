@@ -14,14 +14,17 @@ library work;
 use work.board_pkg.all;
 
 entity handshake is
+    generic (
+        g_DATA_WIDTH : integer := 1
+    );    
     port (
         clk_src     : in std_logic;     --source clock
         clk_dst     : in std_logic;     --destination clock
         rst_n_i     : in std_logic;     --active low reset
 
         --Signal ports
-        sig_i       : in std_logic;
-        sig_o       : out std_logic
+        data_i       : in std_logic_vector(g_DATA_WIDTH-1 downto 0);
+        data_o       : out std_logic_vector(g_DATA_WIDTH-1 downto 0)
     );
 end handshake;
 
@@ -34,15 +37,30 @@ architecture rtl of handshake is
     signal ack_prev 	: std_logic;
     signal ack 	        : std_logic;
     signal busy 		: std_logic;
+    signal valid 		: std_logic;
+    signal transfer_data : std_logic_vector(g_DATA_WIDTH-1 downto 0)
 begin
 
-    --Handshake logic
-	--Note: wb_clk_i is source clk, tx_clk_i is dest. clk
+    --Process to assign valid bit, and copy input data to transfer region
+    pr_set_valid : process(clk_src, rst_n_i)
+    begin
+        if (rst_n_i = '0') then
+            transfer_data <= (others => '0');
+            valid <= '0';
+        elsif (busy = '0' and valid = '0') then
+            transfer_data <= data_i;
+            valid <= '1';
+        elsif (ack_prev) then
+            valid <= '0';
+        end if;
+    end process pr_set_valid;
+
+    --Process to assign the request signal high and begin the handshake
 	pr_set_req : process(clk_src, rst_n_i) 
 	begin
 	   if (rst_n_i = '0') then
 		    req 	<= '0';
-	   elsif(busy = '0' and sig_i = '1') then
+	   elsif(busy = '0' and valid = '1') then
 	      	req 	<= '1';
 	   elsif(ack_prev = '1') then
 	      	req 	<= '0';
@@ -73,21 +91,25 @@ begin
 		    ack	        <= '0';
 	   elsif rising_edge(clk_src) then
 	      	ack_prev	<= ack;
-	      	ack 	    <= req_new; 
+              ack 	    <= req_prev; --using prev req to prevent ack from 
+                                     --going high before transfer is complete
 	   end if;
 	end process pr_ack;
 
-	--Process to assign intermediate enable signal, sig_o,
+	--Process to assign intermediate enable signal, data_o,
 	--which gets passed to enable_i in cmp_sport port map  
 	pr_enable : process(clk_dst, rst_n_i)
 	begin
 	   if (rst_n_i = '0') then
-	      	sig_o <= '0';
-	   elsif rising_edge(clk_dst) then
-	      	sig_o <= ((not req_prev) and (req_new));
+	      	data_o <= '0';
+       elsif rising_edge(clk_dst) then
+            if(req_prev = '0' and req_new = '1') then
+                data_o <= transfer_data;
+            end if;
 	   end if;
 	end process pr_enable;
 
+    --Do not initiate a new transfer until the current one is completed
     busy <= req or ack_prev;
     
 end rtl;

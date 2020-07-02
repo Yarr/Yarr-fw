@@ -48,6 +48,9 @@ end tx_channel;
 architecture rtl of tx_channel is
 	-- Components
 	component handshake
+	generic (
+        g_DATA_WIDTH : integer := 1
+    );
 	port (
 		clk_src     : in std_logic;     --source clock
         clk_dst     : in std_logic;     --destination clock
@@ -119,7 +122,7 @@ architecture rtl of tx_channel is
     signal az_word_s : std_logic_vector(31 downto 0);
 	signal az_interval_s : std_logic_vector(15 downto 0);
 	
-	signal sig_handshake_o : std_logic;   --for tx_enable_i handshake
+	signal tx_enable_s : std_logic;   --for tx_enable_i handshake
 
 begin
 
@@ -208,13 +211,13 @@ begin
 		clk_dst => tx_clk_i,
 		rst_n_i => rst_n_i,
 		sig_i => tx_enable_i,
-		sig_o => sig_handshake_o
+		sig_o => tx_enable_s
 	);
 	
 	cmp_sport: serial_port PORT MAP(
 		clk_i => tx_clk_i,
 		rst_n_i => rst_n_i,
-		enable_i => sig_handshake_o,   -- previously tx_enable_i,
+		enable_i => tx_enable_s,   -- previously tx_enable_i,
 		data_i => sport_data,
 		idle_i => c_TX_IDLE_WORD,
 		sync_i => c_TX_SYNC_WORD,
