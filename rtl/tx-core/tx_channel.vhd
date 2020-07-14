@@ -206,12 +206,7 @@ begin
                loop_word_s(31 downto 0) when (loop_cnt = to_unsigned(1, 8)) else
 			   x"69696969";
 			   
-	enable_hs: handshake PORT MAP(
-		clk_src => wb_clk_i,
-		clk_dst => tx_clk_i,
-		rst_n_i => rst_n_i,
-		sig_i => tx_enable_i,
-		sig_o => tx_enable_s
+	en_hs: handshake PORT MAP(clk_s => wb_clk_i, clk_d => tx_clk_i, rst_n => rst_n_i, di => tx_enable_i, do => tx_enable_s
 	);
 	
 	cmp_sport: serial_port PORT MAP(

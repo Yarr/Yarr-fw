@@ -18,13 +18,13 @@ entity handshake is
         g_DATA_WIDTH : integer := 1
     );    
     port (
-        clk_src     : in std_logic;     --source clock
-        clk_dst     : in std_logic;     --destination clock
-        rst_n_i     : in std_logic;     --active low reset
+        clk_s     : in std_logic;     --source clock
+        clk_d     : in std_logic;     --destination clock
+        rst_n     : in std_logic;     --active low reset
 
         --Signal ports
-        data_i       : in std_logic_vector(g_DATA_WIDTH-1 downto 0);
-        data_o       : out std_logic_vector(g_DATA_WIDTH-1 downto 0)
+        di       : in std_logic_vector(g_DATA_WIDTH-1 downto 0);    --data in
+        do       : out std_logic_vector(g_DATA_WIDTH-1 downto 0)    --data out
     );
 end handshake;
 
@@ -42,69 +42,73 @@ architecture rtl of handshake is
 begin
 
     --Process to assign valid bit, and copy input data to transfer region
-    pr_set_valid : process(clk_src, rst_n_i)
+    pr_set_valid : process(clk_s, rst_n)
     begin
-        if (rst_n_i = '0') then
+        if (rst_n = '0') then
             transfer_data <= (others => '0');
             valid <= '0';
-        elsif (busy = '0' and valid = '0') then
-            transfer_data <= data_i;
-            valid <= '1';
-        elsif (ack_prev) then
-            valid <= '0';
+        elsif rising_edge(clk_s) then
+            if (busy = '0' and valid = '0') then
+                transfer_data <= di;
+                valid <= '1';
+            elsif (ack_prev) then
+                valid <= '0';
+            end if;
         end if;
     end process pr_set_valid;
 
     --Process to assign the request signal high and begin the handshake
-	pr_set_req : process(clk_src, rst_n_i) 
+	pr_set_req : process(clk_s, rst_n) 
 	begin
-	   if (rst_n_i = '0') then
-		    req 	<= '0';
-	   elsif(busy = '0' and valid = '1') then
-	      	req 	<= '1';
-	   elsif(ack_prev = '1') then
-	      	req 	<= '0';
-	   end if;
+	    if (rst_n = '0') then
+            req 	<= '0';
+        elsif rising_edge(clk_s) then
+            if(busy = '0' and valid = '1') then
+                    req 	<= '1';
+            elsif(ack_prev = '1') then
+                    req 	<= '0';
+            end if;
+        end if;
 	end process pr_set_req;
 
 	--Process to update old and new request values using 
 	--destination clock domain
-	pr_request : process(clk_dst, rst_n_i)
+	pr_request : process(clk_d, rst_n)
 	begin
-	   if (rst_n_i = '0') then
-		req_prev 	<= '0';
-		req_new 	<= '0';
-		req_pipe	<= '0';
-	   elsif rising_edge(clk_dst) then
-		req_prev	<= req_new;
-		req_new 	<= req_pipe;
-		req_pipe 	<= req;
+	   if (rst_n = '0') then
+		    req_prev 	<= '0';
+		    req_new 	<= '0';
+		    req_pipe	<= '0';
+	   elsif rising_edge(clk_d) then
+		    req_prev	<= req_new;
+		    req_new 	<= req_pipe;
+		    req_pipe 	<= req;
 	   end if;
 	end process pr_request;
 
 	--Process to pass new request to ack. using
 	--source clock domain 
-	pr_ack : process(clk_src, rst_n_i)
+	pr_ack : process(clk_s, rst_n)
 	begin
-	   if (rst_n_i = '0') then
+	   if (rst_n = '0') then
 	      	ack_prev 	<= '0';
 		    ack	        <= '0';
-	   elsif rising_edge(clk_src) then
+	   elsif rising_edge(clk_s) then
 	      	ack_prev	<= ack;
-              ack 	    <= req_prev; --using prev req to prevent ack from 
+            ack 	    <= req_prev; --using prev req to prevent ack from 
                                      --going high before transfer is complete
 	   end if;
 	end process pr_ack;
 
-	--Process to assign intermediate enable signal, data_o,
+	--Process to assign intermediate enable signal, do,
 	--which gets passed to enable_i in cmp_sport port map  
-	pr_enable : process(clk_dst, rst_n_i)
+	pr_enable : process(clk_d, rst_n)
 	begin
-	   if (rst_n_i = '0') then
-	      	data_o <= '0';
-       elsif rising_edge(clk_dst) then
+	   if (rst_n = '0') then
+	      	do <= '0';
+       elsif rising_edge(clk_d) then
             if(req_prev = '0' and req_new = '1') then
-                data_o <= transfer_data;
+                do <= transfer_data;
             end if;
 	   end if;
 	end process pr_enable;
