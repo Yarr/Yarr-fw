@@ -47,20 +47,6 @@ end tx_channel;
 
 architecture rtl of tx_channel is
 	-- Components
-	component handshake
-	generic (
-        g_DATA_WIDTH : integer := 1
-    );
-	port (
-		clk_src     : in std_logic;     --source clock
-        clk_dst     : in std_logic;     --destination clock
-        rst_n_i     : in std_logic;     --active low reset
-        --Signal ports
-        sig_i       : in std_logic;
-        sig_o       : out std_logic
-	);
-	end component;
-
 	component serial_port
 	generic (
         g_PORT_WIDTH : integer := 32
@@ -122,14 +108,12 @@ architecture rtl of tx_channel is
     signal az_word_s : std_logic_vector(31 downto 0);
 	signal az_interval_s : std_logic_vector(15 downto 0);
 	
-	signal tx_enable_s : std_logic;   --for tx_enable_i handshake
 
 begin
 
 	-- Write to FiFo
 	tx_fifo_wr <= wb_wr_en_i;
-	tx_fifo_din <= wb_dat_i;
-	
+	tx_fifo_din <= wb_dat_i;	
 	
 	-- Status outputs
 	tx_underrun_o <= tx_fifo_rd and tx_fifo_empty;
@@ -206,13 +190,11 @@ begin
                loop_word_s(31 downto 0) when (loop_cnt = to_unsigned(1, 8)) else
 			   x"69696969";
 			   
-	en_hs: handshake PORT MAP(clk_s => wb_clk_i, clk_d => tx_clk_i, rst_n => rst_n_i, di => tx_enable_i, do => tx_enable_s
-	);
 	
 	cmp_sport: serial_port PORT MAP(
 		clk_i => tx_clk_i,
 		rst_n_i => rst_n_i,
-		enable_i => tx_enable_s,   -- previously tx_enable_i,
+		enable_i => tx_enable_i,
 		data_i => sport_data,
 		idle_i => c_TX_IDLE_WORD,
 		sync_i => c_TX_SYNC_WORD,

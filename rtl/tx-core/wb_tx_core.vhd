@@ -120,6 +120,20 @@ architecture behavioral of wb_tx_core is
 			trig_done_o : out std_logic
 		);
 	end component;
+
+	component handshake
+	generic (
+        g_WIDTH : integer := 1
+    );
+	port (
+		clk_s    : in std_logic;     --source clock
+        clk_d    : in std_logic;     --destination clock
+        rst_n    : in std_logic;     --active low reset
+        --Signal ports
+        di       : in std_logic;
+        do       : out std_logic
+	);
+	end component;
 	
 	-- Signals
 	signal tx_data_cmd : std_logic_vector(g_NUM_TX-1 downto 0);
@@ -128,6 +142,7 @@ architecture behavioral of wb_tx_core is
 	
 	-- Registers
 	signal tx_enable : std_logic_vector(31 downto 0) := (others => '0');
+	signal tx_enable_h : std_logic_vector(31 downto 0) := (others => '0');
 	
 	signal tx_underrun : std_logic_vector(31 downto 0) := (others => '0');
 	signal tx_overrun : std_logic_vector(31 downto 0) := (others => '0');
@@ -148,8 +163,8 @@ architecture behavioral of wb_tx_core is
 	signal trig_word_length : std_logic_vector(31 downto 0);
 	signal trig_word : std_logic_vector(1023 downto 0);
     type trig_word_array is array (g_NUM_TX-1 downto 0) of std_logic_vector(1023 downto 0);
-    signal trig_word_t : trig_word_array;
-	signal trig_word_pointer : unsigned(4 downto 0);
+	signal trig_word_t : trig_word_array;
+	signal trig_word_pointer : unsigned(4 downto 0);  
     signal tx_polarity : std_logic_vector((g_NUM_TX-1) downto 0);
     signal tx_polarity_t : std_logic_vector((g_NUM_TX-1) downto 0);
     
@@ -172,7 +187,28 @@ architecture behavioral of wb_tx_core is
 	signal channel : integer range 0 to 31;
 
     signal az_word : std_logic_vector(31 downto 0);
-    signal az_interval : std_logic_vector(15 downto 0);
+	signal az_interval : std_logic_vector(15 downto 0);
+	
+	--Handshake intermittent signals
+	signal tx_enable_hs 		: std_logic_vector(31 downto 0) := (others => '0');
+	signal trig_en_hs 			: std_logic;
+	signal trig_conf_hs 		: std_logic_vector(3 downto 0);
+	signal trig_time_hs 		: std_logic_vector(63 downto 0);
+	--signal trig_time_l_hs 		: std_logic_vector(31 downto 0);
+	--signal trig_time_l_d_hs 	: std_logic_vector(31 downto 0);
+	--signal trig_time_h_hs 		: std_logic_vector(31 downto 0);
+	--signal trig_time_h_d_hs 	: std_logic_vector(31 downto 0);
+	signal trig_count_hs 		: std_logic_vector(31 downto 0);
+	signal trig_word_hs 		: std_logic_vector(1023 downto 0);
+	--signal trig_word_ptr_hs 	: std_logic_vector(4 downto 0);
+	signal trig_abort_hs 		: std_logic;
+	signal trig_freq_hs 		: std_logic_vector(31 downto 0);
+	--signal trig_in_freq_d_hs 	: std_logic_vector(31 downto 0);
+	signal trig_word_lgth_hs 	: std_logic_vector(31 downto 0);
+	signal tx_polarity_hs 		: std_logic_vector((g_NUM_TX-1) downto 0);
+	signal tx_empty_hs			: std_logic_vector(31 downto 0) := (others => '0');
+	signal trig_done_hs			: std_logic;
+	signal trig_in_freq_hs		: std_logic_vector(31 downto 0);
 
 begin
 
@@ -189,7 +225,7 @@ begin
 			wb_dat_t <= (others => '0');
 			trig_en <= '0';
 			trig_abort  <= '0';
-            tx_enable <= (others => '0');
+            --tx_enable <= (others => '0');
             trig_conf <= (others => '0');
             trig_time_h <= (others => '0');
             trig_time_h_d <= (others => '0');
@@ -209,7 +245,7 @@ begin
             trig_time_l_d <= trig_time_l;
 			trig_time <= trig_time_h_d & trig_time_l_d; -- delay for more flexible routing
 			trig_abort  <= '0';
-			trig_in_freq_d <= trig_in_freq; -- delay for more flexible routing
+			trig_in_freq_d <= trig_in_freq_hs; -- delay for more flexible routing
 			if (wb_cyc_i = '1' and wb_stb_i = '1') then
 				if (wb_we_i = '1') then
 					case (wb_adr_i(7 downto 0)) is
@@ -268,14 +304,14 @@ begin
 							wb_dat_o <= tx_enable;
 							wb_ack_o <= '1';
 						when x"02" => -- Read empty stat
-							wb_dat_o <= tx_empty;
+							wb_dat_o <= tx_empty_hs;
 							wb_ack_o <= '1';
 						when x"03" => -- Read trigger enable
 							wb_dat_o(0) <= trig_en;
 							wb_dat_o(31 downto 1) <= (others => '0');
 							wb_ack_o <= '1';
 						when x"04" => -- Read trigger done
-							wb_dat_o(0) <= trig_done;
+							wb_dat_o(0) <= trig_done_hs;
 							wb_dat_o(31 downto 1) <= (others => '0');
 							wb_ack_o <= '1';
 						when x"05" => -- Read trigger conf
@@ -327,6 +363,37 @@ begin
 		end if;
 	end process wb_proc;
 
+	--Handshake instantiations for status registers
+	--Source clk is wb, destination clock is tx:
+	hs1: handshake generic map(g_WIDTH => 32) 
+		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_enable, do=>tx_enable_hs);
+	hs2: handshake generic map(g_WIDTH => 1) 
+		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_en, do=>trig_en_hs);
+	hs3: handshake generic map(g_WIDTH => 4) 
+		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_conf, do=>trig_conf_hs);
+	hs4: handshake generic map(g_WIDTH => 64) 
+		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_time, do=>trig_time_hs);
+	hs5: handshake generic map(g_WIDTH => 32) 
+		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_count, do=>trig_count_hs);
+	hs6: handshake generic map(g_WIDTH => 1024) 
+		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word, do=>trig_word_hs);
+	hs7: handshake generic map(g_WIDTH => 1) 
+		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_abort, do=>trig_abort_hs);
+	hs8: handshake generic map(g_WIDTH => 32) 
+		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_freq, do=>trig_freq_hs);
+	hs9: handshake generic map(g_WIDTH => 32) 
+		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word_length, do=>trig_word_lgth_hs);
+	hs10: handshake generic map(g_WIDTH => 32) 
+		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_polarity, do=>tx_polarity_hs);
+	--Source clk is tx, destination clock is wb:
+	hs11: handshake generic map(g_WIDTH => 32) 
+		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>tx_empty, do=>tx_empty_hs);
+	hs12: handshake generic map(g_WIDTH => 1) 
+		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_done, do=>trig_done_hs);
+	hs13: handshake generic map(g_WIDTH => 32) 
+		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_in_freq, do=>trig_in_freq_hs);
+
+
 	tx_channels: for I in 0 to g_NUM_TX-1 generate
 	begin
 		cmp_tx_channel: tx_channel PORT MAP (
@@ -339,12 +406,12 @@ begin
 			-- TX
 			tx_clk_i => tx_clk_i,
 			tx_data_o => tx_data_cmd(I),
-			tx_enable_i => tx_enable(I),
+			tx_enable_i => tx_enable_hs(I),
 			-- Looper
 			loop_pulse_i => tx_trig_pulse,
-			loop_mode_i => trig_en,
+			loop_mode_i => trig_en_hs,
 			loop_word_i => trig_word_t(I),
-			loop_word_bytes_i => trig_word_length(7 downto 0),
+			loop_word_bytes_i => trig_word_lgth_hs(7 downto 0),
             -- Autozeroing
             az_word_i => az_word,
             az_interval_i => az_interval,
@@ -352,7 +419,7 @@ begin
 			tx_underrun_o => tx_underrun(I),
 			tx_overrun_o => tx_overrun(I),
 			tx_almost_full_o => tx_almost_full(I),
-			tx_empty_o => tx_empty(I)
+			tx_empty_o => tx_empty(I)		
 		);
 		
 		tx_mux : process(tx_clk_i, rst_n_i)
@@ -362,12 +429,12 @@ begin
                 trig_word_t(I) <= (others => '0');
                 tx_polarity_t(I) <= '0';
 			elsif rising_edge(tx_clk_i) then
-				--if (tx_enable(I) = '1' and trig_en = '1') then
+				--if (tx_enable_hs(I) = '1' and trig_en_hs = '1') then
 				--	tx_data_o(I) <= tx_data_trig;
 				--else
-                    trig_word_t(I) <= trig_word;
+                    trig_word_t(I) <= trig_word_hs;
 					tx_data_o(I) <= tx_data_cmd(I) xor tx_polarity_t(I);
-                    tx_polarity_t(I) <= tx_polarity(I);
+                    tx_polarity_t(I) <= tx_polarity_hs(I);
 				--end if;
 			end if;
 		end process;
@@ -383,14 +450,14 @@ begin
 		-- Trigger In
 		ext_trig_i => ext_trig_i,
 		-- Config
-		--trig_word_i => trig_word,
-		--trig_word_length_i => trig_word_length,
-		trig_freq_i => trig_freq,
-		trig_time_i => trig_time,
-		trig_count_i => trig_count,
-		trig_conf_i => trig_conf,
-		trig_en_i => trig_en,
-		trig_abort_i => trig_abort,
+		--trig_word_i => trig_word_hs,
+		--trig_word_length_i => trig_word_lgth_hs,
+		trig_freq_i => trig_freq_hs,
+		trig_time_i => trig_time_hs,
+		trig_count_i => trig_count_hs,
+		trig_conf_i => trig_conf_hs,
+		trig_en_i => trig_en_hs,
+		trig_abort_i => trig_abort_hs,
 		trig_done_o => trig_done
 	);
     

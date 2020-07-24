@@ -15,7 +15,7 @@ use work.board_pkg.all;
 
 entity handshake is
     generic (
-        g_DATA_WIDTH : integer := 1
+        g_WIDTH : integer := 1
     );    
     port (
         clk_s     : in std_logic;     --source clock
