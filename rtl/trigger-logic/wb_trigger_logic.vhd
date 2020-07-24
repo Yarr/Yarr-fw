@@ -126,6 +126,20 @@ architecture rtl of wb_trigger_logic is
         );
     end component;
 
+    component handshake
+	generic (
+        g_WIDTH : integer := 1
+    );
+	port (
+		clk_s    : in std_logic;     --source clock
+        clk_d    : in std_logic;     --destination clock
+        rst_n    : in std_logic;     --active low reset
+        --Signal ports
+        di       : in std_logic;
+        do       : out std_logic
+	);
+	end component;
+
     constant delay_width : integer := 3;
     
     -- Registers
@@ -156,6 +170,18 @@ architecture rtl of wb_trigger_logic is
     signal local_reset : std_logic;
     signal deadtime_cnt : unsigned(15 downto 0);
     signal busy_t : std_logic;
+
+    --Handshake intermediate signals
+    signal trig_mask_hs     : std_logic_vector(31 downto 0);
+    signal trig_tag_mode_hs : std_logic_vector(7 downto 0);
+    signal trig_logic_hs    : std_logic_vector(31 downto 0);
+    signal trig_edge_hs     : std_logic_vector(3 downto 0);
+    signal ch0_delay_hs     : std_logic_vector(delay_width-1 downto 0);
+    signal ch1_delay_hs     : std_logic_vector(delay_width-1 downto 0);
+    signal ch2_delay_hs     : std_logic_vector(delay_width-1 downto 0);
+    signal ch3_delay_hs     : std_logic_vector(delay_width-1 downto 0);
+    signal deadtime_hs      : std_logic_vector(15 downto 0);
+    signal local_reset_hs   : std_logic;
 
 begin
 
@@ -242,6 +268,30 @@ begin
         end if;
     end process wb_proc;
 
+    --Handshake instantiations for status registers
+	--Source clk is wb, destination clock is clk_i:
+	hs1: handshake generic map(g_WIDTH => 32) 
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_mask, do=>trig_mask_hs);
+    hs2: handshake generic map(g_WIDTH => 8) 
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_tag_mode, do=>trig_tag_mode_hs);
+    hs3: handshake generic map(g_WIDTH => 32) 
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_logic, do=>trig_logic_hs);
+    hs4: handshake generic map(g_WIDTH => 4) 
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_edge, do=>trig_edge_hs);
+    hs5: handshake generic map(g_WIDTH => delay_width) 
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch0_delay, do=>ch0_delay_hs);
+    hs6: handshake generic map(g_WIDTH => delay_width) 
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch1_delay, do=>ch1_delay_hs);
+    hs7: handshake generic map(g_WIDTH => delay_width) 
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch2_delay, do=>ch2_delay_hs);
+    hs8: handshake generic map(g_WIDTH => delay_width) 
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch3_delay, do=>ch3_delay_hs);
+    hs9: handshake generic map(g_WIDTH => 16) 
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>deadtime, do=>deadtime_hs);
+    hs10: handshake generic map(g_WIDTH => 1) 
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>local_reset, do=>local_reset_hs);
+
+
     -- Sync/edge detector inputs
     trig_inputs: for I in 0 to 3 generate
     begin
@@ -250,25 +300,25 @@ begin
         cmp_edge_trig: edge_detector
             port map(clk_i => clk_i, rst_n_i => rst_n_i, dat_i => sync_ext_trig_i(I),
                      falling_o => edge_f(I), rising_o => edge_r(I) );
-        edge_ext_trig_i(I) <= edge_f(I) when trig_edge(I) = '1' else edge_r(I);
+        edge_ext_trig_i(I) <= edge_f(I) when trig_edge_hs(I) = '1' else edge_r(I);
     end generate trig_inputs;
     
     cmp_delay_trig0: delayer
         generic map(N => delay_width)
         port map(clk_i => clk_i, rst_n_i => rst_n_i, dat_i => edge_ext_trig_i(0),
-                 dat_o => del_ext_trig_i(0), delay => ch0_delay);
+                 dat_o => del_ext_trig_i(0), delay => ch0_delay_hs);
     cmp_delay_trig1: delayer
         generic map(N => delay_width)
         port map(clk_i => clk_i, rst_n_i => rst_n_i, dat_i => edge_ext_trig_i(1),
-                 dat_o => del_ext_trig_i(1), delay => ch1_delay);
+                 dat_o => del_ext_trig_i(1), delay => ch1_delay_hs);
     cmp_delay_trig2: delayer
         generic map(N => delay_width)
         port map(clk_i => clk_i, rst_n_i => rst_n_i, dat_i => edge_ext_trig_i(2),
-                 dat_o => del_ext_trig_i(2), delay => ch2_delay);
+                 dat_o => del_ext_trig_i(2), delay => ch2_delay_hs);
     cmp_delay_trig3: delayer
         generic map(N => delay_width)
         port map(clk_i => clk_i, rst_n_i => rst_n_i, dat_i => edge_ext_trig_i(3),
-                 dat_o => del_ext_trig_i(3), delay => ch3_delay);
+                 dat_o => del_ext_trig_i(3), delay => ch3_delay_hs);
                  
     cmp_sync_busy: synchronizer port map(clk_i => clk_i, rst_n_i => rst_n_i, async_in => ext_busy_i, sync_out => sync_ext_busy_i);
     
@@ -276,7 +326,7 @@ begin
     ext_busy_o <= master_busy_t;
 	
     -- Apply coincidence/veto logic
-    master_trig_t <= trig_logic(to_integer(unsigned((lcl_eudet_trig_t & del_ext_trig_i) and trig_mask(4 downto 0))));
+    master_trig_t <= trig_logic_hs(to_integer(unsigned((lcl_eudet_trig_t & del_ext_trig_i) and trig_mask_hs(4 downto 0))));
     
     -- trig tag gen
     trig_tag_proc: process(clk_i, rst_n_i)
@@ -287,20 +337,20 @@ begin
             timestamp_cnt <= (others => '0');
         elsif rising_edge(clk_i) then
             -- TODO need reset
-            if (local_reset = '1') then
+            if (local_reset_hs = '1') then
                 trig_counter <= (others => '0');    
             elsif (master_trig_t = '1') then
                 trig_counter <= trig_counter + 1;
             end if;
 
-            if (local_reset = '1') then
+            if (local_reset_hs = '1') then
                 timestamp_cnt <= (others => '0');
             else
                 timestamp_cnt <= timestamp_cnt + 1;
             end if;
             
             if (master_trig_t = '1' and master_busy_t = '0') then
-                case (trig_tag_mode) is
+                case (trig_tag_mode_hs) is
                     when x"00" =>
                         trig_tag <= std_logic_vector(trig_counter);
                     when x"01" =>
@@ -341,7 +391,7 @@ begin
                 busy_t <= '1';
             elsif (master_trig_t = '1') then
                 -- This happens on the clk cycle before ext_trig_o pulses
-                deadtime_cnt <= UNSIGNED(deadtime);
+                deadtime_cnt <= UNSIGNED(deadtime_hs);
             else
                 busy_t <= '0';
             end if;
@@ -352,14 +402,14 @@ begin
     cmp_eudet_tlu: eudet_tlu
     port map (
         clk_i => clk_i,
-        rst_n_i => rst_n_i and (not local_reset),
+        rst_n_i => rst_n_i and (not local_reset_hs),
         eudet_trig_i => eudet_trig_i,
         eudet_rst_i => eudet_rst_i,
         eudet_busy_o => eudet_busy_o,
         eudet_clk_o => eudet_clk_o,
         busy_i => busy_t,
         simple_mode_i => '0',
-        deadtime_i => deadtime,
+        deadtime_i => deadtime_hs,
         trig_o => lcl_eudet_trig_t,
         rst_o => open,
         trig_tag_o => eudet_trig_tag_t
