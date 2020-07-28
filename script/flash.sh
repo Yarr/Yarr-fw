@@ -1,6 +1,6 @@
 #!/bin/bash
 
-HW=("tef1001_R1" "tef1001_R2" "xpressk7_160" "xpressk7_325")
+HW=("tef1001_R1" "tef1001_R2" "xpressk7_160" "xpressk7_325" "kc705_160")
 CHIPS=("rd53" "fei4" "fe65p2")
 FMC=("ohio" "vhdci")
 SPEED=("640Mbps" "160Mbps")
@@ -129,6 +129,10 @@ elif [ $hw_index -eq 2 ] || [ $hw_index -eq 3 ]; then
     DEVICE_INDEX="1"
     MEM_OPTIONS="-size 128 -interface BPIx16"
     MEM_TYPE="28f00ap30b-bpi-x16"
+elif [ $hw_index -eq 4 ]; then
+	DEVICE_INDEX="2"
+	MEM_OPTIONS="-size 128 -interface BPIx16"
+	MEM_TYPE="28f00ap30t-bpi-x16"
 else
     echo "FPGA board not chosen ... aborting!"
     exit 1
