@@ -113,6 +113,20 @@ architecture behavioral of wb_rx_core is
 			empty : OUT STD_LOGIC
 		);
 	END COMPONENT;
+
+	component handshake
+	generic (
+        g_WIDTH : integer := 1
+    );
+	port (
+		clk_s    : in std_logic;     --source clock
+        clk_d    : in std_logic;     --destination clock
+        rst_n    : in std_logic;     --active low reset
+        --Signal ports
+        di       : in std_logic;
+        do       : out std_logic
+	);
+	end component;
 	
 	type rx_data_array is array (g_NUM_RX-1 downto 0) of std_logic_vector(25 downto 0);
 	type rx_data_fifo_array is array (g_NUM_RX-1 downto 0) of std_logic_vector(31 downto 0);
@@ -137,6 +151,9 @@ architecture behavioral of wb_rx_core is
 	signal channel : integer range 0 to g_NUM_RX-1;
 
 	signal debug : std_logic_vector(31 downto 0);
+
+	--Handshake intermediate signals
+	signal rx_enable_hs : std_logic_vector(31 downto 0);
 	
 begin
 	debug_o <= debug;
@@ -174,6 +191,11 @@ begin
 			end if;
 		end if;
 	end process wb_proc;
+
+	--Handshake instantiations for status registers
+	--Source clk is wb, destination clock is tx:
+	hs1: handshake generic map(g_WIDTH => 32) 
+		port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_enable, do=>rx_enable_hs);
 	
 	-- Arbiter
 	cmp_rr_arbiter : rr_arbiter port map (
@@ -253,7 +275,7 @@ begin
                 rst_n_i => rst_n_i,
                 clk_160_i => rx_clk_i,
                 clk_640_i => rx_serdes_clk(0),
-                enable_i => rx_enable(I),
+                enable_i => rx_enable_hs(I),
                 rx_data_i => rx_data_i(I),
                 trig_tag_i => trig_tag_i,
                 rx_data_o => rx_data(I),
@@ -268,7 +290,7 @@ begin
                 rst_n_i => rst_n_i,
                 clk_160_i => rx_clk_i,
                 clk_640_i => rx_serdes_clk(0),
-                enable_i => rx_enable(I),
+                enable_i => rx_enable_hs(I),
                 rx_data_i => not rx_data_i(I),
                 trig_tag_i => trig_tag_i,
                 rx_data_o => rx_data(I),
@@ -283,7 +305,7 @@ begin
                 rst_n_i => rst_n_i,
                 clk_160_i => rx_clk_i,
                 clk_640_i => rx_serdes_clk(1),
-                enable_i => rx_enable(I),
+                enable_i => rx_enable_hs(I),
                 rx_data_i => not rx_data_i(I),
                 trig_tag_i => trig_tag_i,
                 rx_data_o => rx_data(I),
@@ -294,7 +316,7 @@ begin
         end generate bank0;
 		
 		rx_fifo_din(I) <= STD_LOGIC_VECTOR(TO_UNSIGNED(I,6)) & rx_data(I);
-		rx_fifo_wren(I) <= rx_valid(I) and rx_enable(I);
+		rx_fifo_wren(I) <= rx_valid(I) and rx_enable_hs(I);
 		cmp_rx_channel_fifo : rx_channel_fifo PORT MAP (
 			rst => not rst_n_i,
 			wr_clk => rx_clk_i,
