@@ -90,6 +90,20 @@ architecture Behavioral of wb_rx_bridge is
 		empty : OUT STD_LOGIC
 	);
 	END COMPONENT;
+
+	component handshake
+	generic (
+        g_WIDTH : integer := 1
+    );
+	port (
+		clk_s    : in std_logic;     --source clock
+        clk_d    : in std_logic;     --destination clock
+        rst_n    : in std_logic;     --active low reset
+        --Signal ports
+        di       : in std_logic;
+        do       : out std_logic
+	);
+	end component;
 	
 	-- Constants
 	constant c_ALMOST_FULL_THRESHOLD : unsigned(7 downto 0) := TO_UNSIGNED(240, 8);
@@ -149,11 +163,18 @@ architecture Behavioral of wb_rx_bridge is
 	-- Registers
 	signal loopback : std_logic;
 	signal data_rate : std_logic_vector(31 downto 0);
+
+	--Handshake intermediate signals
+	signal data_fifo_empty_true_hs 	: std_logic;
+	signal dma_data_cnt_d_vec 		: std_logic_vector(31 downto 0);  --from unsigned
+	signal dma_data_cnt_d_hs 		: std_logic_vector(31 downto 0);
 	
 begin
 	--Tie offs
 	irq_o <= '0';
 	busy_o <= data_fifo_full;
+
+	dma_data_cnt_d_vec <= std_logic_vector(dma_data_cnt_d);
 
 	-- Wishbone Slave
 	wb_slave_proc: process(sys_clk_i, rst_n_i)
@@ -201,10 +222,10 @@ begin
 						wb_ack_o <= '1';
 					elsif (wb_adr_i(3 downto 0) = x"5") then -- Bridge Empty
 						wb_dat_o(31 downto 1) <= (others => '0');
-						wb_dat_o(0) <= data_fifo_empty_true;
+						wb_dat_o(0) <= data_fifo_empty_true_hs;
 						wb_ack_o <= '1';	
 					elsif (wb_adr_i(3 downto 0) = x"6") then -- Cur Count
-						wb_dat_o <= std_logic_vector(dma_data_cnt_d);
+						wb_dat_o <= dma_data_cnt_d_hs;
 						wb_ack_o <= '1';							
 					else
 						wb_dat_o <= x"DEADBEEF";
@@ -222,6 +243,13 @@ begin
 			end if;
 		end if;
 	end process wb_slave_proc;
+
+	--Handshake instantiations for status registers
+	--Source clk is dma_clk_i, destination clock is sys_clk_i:
+	hs1: handshake generic map(g_WIDTH => 1) 
+		port map(clk_s=>dma_clk_i, clk_d=>sys_clk_i, rst_n=>rst_n_i, di=>data_fifo_empty_true, do=>data_fifo_empty_true_hs);
+	hs2: handshake generic map(g_WIDTH => 32) 
+		port map(clk_s=>dma_clk_i, clk_d=>sys_clk_i, rst_n=>rst_n_i, di=>dma_data_cnt_d_vec, do=>dma_data_cnt_d_hs);
 
 	-- Data from Rx
 	data_rec : process (sys_clk_i, rst_n_i)
