@@ -68,45 +68,34 @@ set_property PACKAGE_PIN T6 [get_ports {pci_exp_rxp[3]}]
 
 ## GPIO LEDs
 
-# Bank: 33 - GPIO_LED_0_LS
-set_property DRIVE 12 [get_ports {usr_led_o[0]}]
-set_property SLEW SLOW [get_ports {usr_led_o[0]}]
-set_property IOSTANDARD LVCMOS15 [get_ports {usr_led_o[0]}]
-set_property PACKAGE_PIN AB8 [get_ports {usr_led_o[0]}]
+# GPIO Pins for LEDs:
+# Note : Pins use two different voltage standards
+set_property DRIVE 12 [get_ports {usr_led_o*}]
+set_property SLEW SLOW [get_ports {usr_led_o*}]
 
-# Bank: 33 - GPIO_LED_1_LS
+set_property PACKAGE_PIN    AB8         [get_ports {usr_led_o[0]}]
+set_property IOSTANDARD     LVCMOS15    [get_ports {usr_led_o[0]}]
 
-# Bank: 33 - GPIO_LED_2_LS
+set_property PACKAGE_PIN    AA8         [get_ports {usr_led_o[1]}]
+set_property IOSTANDARD     LVCMOS15    [get_ports {usr_led_o[1]}]
 
-# Bank: 33 - GPIO_LED_3_LS
-#set_property DRIVE 12 [get_ports {usr_led_o[3]}]
-#set_property SLEW SLOW [get_ports {usr_led_o[3]}]
-#set_property IOSTANDARD LVCMOS15 [get_ports {usr_led_o[3]}]
-#set_property PACKAGE_PIN AB9 [get_ports {usr_led_o[3]}]
+set_property PACKAGE_PIN    AC9         [get_ports {usr_led_o[2]}]
+set_property IOSTANDARD     LVCMOS15    [get_ports {usr_led_o[2]}]
 
-# Bank: 13 - GPIO_LED_4_LS
-#set_property DRIVE 12 [get_ports {usr_led_o[4]}]
-#set_property SLEW SLOW [get_ports {usr_led_o[4]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {usr_led_o[4]}]
-#set_property PACKAGE_PIN AE26 [get_ports {usr_led_o[4]}]
+set_property PACKAGE_PIN    AB9         [get_ports {usr_led_o[3]}]
+set_property IOSTANDARD     LVCMOS15    [get_ports {usr_led_o[3]}]
 
-# Bank: 17 - GPIO_LED_5_LS
-#set_property DRIVE 12 [get_ports {usr_led_o[5]}]
-#set_property SLEW SLOW [get_ports {usr_led_o[5]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {usr_led_o[5]}]
-#set_property PACKAGE_PIN G19 [get_ports {usr_led_o[5]}]
+set_property PACKAGE_PIN    AE26        [get_ports {usr_led_o[4]}]
+set_property IOSTANDARD     LVCMOS25    [get_ports {usr_led_o[4]}]
 
-# Bank: 17 - GPIO_LED_6_LS
-#set_property DRIVE 12 [get_ports {usr_led_o[6]}]
-#set_property SLEW SLOW [get_ports {usr_led_o[6]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {usr_led_o[6]}]
-#set_property PACKAGE_PIN E18 [get_ports {usr_led_o[6]}]
+set_property PACKAGE_PIN    G19         [get_ports {usr_led_o[5]}]
+set_property IOSTANDARD     LVCMOS25    [get_ports {usr_led_o[5]}]
 
-# Bank: 18 - GPIO_LED_7_LS
-#set_property DRIVE 12 [get_ports {usr_led_o[7]}]
-#set_property SLEW SLOW [get_ports {usr_led_o[7]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {usr_led_o[7]}]
-#set_property PACKAGE_PIN F16 [get_ports {usr_led_o[7]}]
+set_property PACKAGE_PIN    E18         [get_ports {usr_led_o[6]}]
+set_property IOSTANDARD     LVCMOS25    [get_ports {usr_led_o[6]}]
+
+set_property PACKAGE_PIN    F16         [get_ports {usr_led_o[7]}]
+set_property IOSTANDARD     LVCMOS25    [get_ports {usr_led_o[7]}]
 
 ## GPIO USER SMA
 
