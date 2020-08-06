@@ -100,8 +100,8 @@ architecture Behavioral of wb_rx_bridge is
         clk_d    : in std_logic;     --destination clock
         rst_n    : in std_logic;     --active low reset
         --Signal ports
-        di       : in std_logic;
-        do       : out std_logic
+        di       : in std_logic_vector;
+        do       : out std_logic_vector
 	);
 	end component;
 	

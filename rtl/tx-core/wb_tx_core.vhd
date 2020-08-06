@@ -130,8 +130,8 @@ architecture behavioral of wb_tx_core is
         clk_d    : in std_logic;     --destination clock
         rst_n    : in std_logic;     --active low reset
         --Signal ports
-        di       : in std_logic;
-        do       : out std_logic
+        di       : in std_logic_vector;
+        do       : out std_logic_vector
 	);
 	end component;
 	
@@ -158,8 +158,8 @@ architecture behavioral of wb_tx_core is
 	signal trig_time_h_d : std_logic_vector(31 downto 0);
 	signal trig_count : std_logic_vector(31 downto 0); -- Fixed number of triggers
 	signal trig_conf : std_logic_vector(3 downto 0); -- Internal, external, pseudo random, 
-	signal trig_en : std_logic;
-	signal trig_done : std_logic;
+	signal trig_en : std_logic_vector(0 downto 0);
+	signal trig_done : std_logic_vector(0 downto 0);
 	signal trig_word_length : std_logic_vector(31 downto 0);
 	signal trig_word : std_logic_vector(1023 downto 0);
     type trig_word_array is array (g_NUM_TX-1 downto 0) of std_logic_vector(1023 downto 0);
@@ -179,7 +179,7 @@ architecture behavioral of wb_tx_core is
     signal per_second_cnt : unsigned(31 downto 0);
     constant ticks_per_second : integer := 160000000; -- 160 MHz clock rate TODO make it set via board_pkg
     
-	signal trig_abort : std_logic;
+	signal trig_abort : std_logic_vector(0 downto 0);
 	
 	signal wb_wr_en	: std_logic_vector(31 downto 0) := (others => '0');
 	signal wb_dat_t : std_logic_vector(31 downto 0);
@@ -191,23 +191,17 @@ architecture behavioral of wb_tx_core is
 	
 	--Handshake intermittent signals
 	signal tx_enable_hs 		: std_logic_vector(31 downto 0) := (others => '0');
-	signal trig_en_hs 			: std_logic;
+	signal trig_en_hs 			: std_logic_vector(0 downto 0);
 	signal trig_conf_hs 		: std_logic_vector(3 downto 0);
 	signal trig_time_hs 		: std_logic_vector(63 downto 0);
-	--signal trig_time_l_hs 		: std_logic_vector(31 downto 0);
-	--signal trig_time_l_d_hs 	: std_logic_vector(31 downto 0);
-	--signal trig_time_h_hs 		: std_logic_vector(31 downto 0);
-	--signal trig_time_h_d_hs 	: std_logic_vector(31 downto 0);
 	signal trig_count_hs 		: std_logic_vector(31 downto 0);
 	signal trig_word_hs 		: std_logic_vector(1023 downto 0);
-	--signal trig_word_ptr_hs 	: std_logic_vector(4 downto 0);
-	signal trig_abort_hs 		: std_logic;
+	signal trig_abort_hs 		: std_logic_vector(0 downto 0);
 	signal trig_freq_hs 		: std_logic_vector(31 downto 0);
-	--signal trig_in_freq_d_hs 	: std_logic_vector(31 downto 0);
 	signal trig_word_lgth_hs 	: std_logic_vector(31 downto 0);
 	signal tx_polarity_hs 		: std_logic_vector((g_NUM_TX-1) downto 0);
 	signal tx_empty_hs			: std_logic_vector(31 downto 0) := (others => '0');
-	signal trig_done_hs			: std_logic;
+	signal trig_done_hs			: std_logic_vector(0 downto 0);
 	signal trig_in_freq_hs		: std_logic_vector(31 downto 0);
 
 begin
@@ -218,33 +212,31 @@ begin
 	wb_proc: process (wb_clk_i, rst_n_i)
 	begin
 		if (rst_n_i = '0') then
-			wb_dat_o <= (others => '0');
-			wb_ack_o <= '0';
-			wb_wr_en <= (others => '0');
-			tx_enable <= (others => '0');
-			wb_dat_t <= (others => '0');
-			trig_en <= '0';
-			trig_abort  <= '0';
-            --tx_enable <= (others => '0');
-            trig_conf <= (others => '0');
-            trig_time_h <= (others => '0');
-            trig_time_h_d <= (others => '0');
-            trig_time_h <= (others => '0');
-            trig_time_l_d <= (others => '0');
-            trig_count <= (others => '0');
-            trig_word <= (others => '0');
-            trig_word_pointer <= (others => '0');
-            trig_abort <= '0';
-            trig_in_freq_d <= (others => '0');
-            az_word <= c_TX_AZ_WORD;
-            az_interval <= std_logic_vector(c_TX_AZ_INTERVAL);
+			wb_dat_o 			<= (others => '0');
+			wb_ack_o 			<= '0';
+			wb_wr_en 			<= (others => '0');
+			tx_enable 			<= (others => '0');
+			wb_dat_t 			<= (others=>'0');
+			trig_en(0) 			<= '0';
+			trig_abort(0)  		<= '0';
+            trig_conf 			<= (others => '0');
+            trig_time_h 		<= (others => '0');
+            trig_time_h_d		<= (others => '0');
+            trig_time_h 		<= (others => '0');
+            trig_time_l_d 		<= (others => '0');
+            trig_count 			<= (others => '0');
+            trig_word 			<= (others => '0');
+            trig_word_pointer	<= (others => '0');
+            trig_in_freq_d 		<= (others => '0');
+            az_word 			<= c_TX_AZ_WORD;
+            az_interval 		<= std_logic_vector(c_TX_AZ_INTERVAL);
 		elsif rising_edge(wb_clk_i) then
 			wb_wr_en <= (others => '0');
 			wb_ack_o <= '0';
             trig_time_h_d <= trig_time_h;
             trig_time_l_d <= trig_time_l;
 			trig_time <= trig_time_h_d & trig_time_l_d; -- delay for more flexible routing
-			trig_abort  <= '0';
+			trig_abort(0)  <= '0';
 			trig_in_freq_d <= trig_in_freq_hs; -- delay for more flexible routing
 			if (wb_cyc_i = '1' and wb_stb_i = '1') then
 				if (wb_we_i = '1') then
@@ -257,7 +249,7 @@ begin
 							tx_enable <= wb_dat_i;
 							wb_ack_o <= '1';
 						when x"03" => -- Set trigger enable
-							trig_en <= wb_dat_i(0);
+							trig_en(0) <= wb_dat_i(0);
 							wb_ack_o <= '1';
 						when x"05" => -- Set trigger conf
 							trig_conf <= wb_dat_i(3 downto 0);
@@ -290,7 +282,7 @@ begin
 							az_interval <= wb_dat_i(15 downto 0);
 							wb_ack_o <= '1';
 						when x"0F" => -- Toggle trigger abort
-							trig_abort <= wb_dat_i(0);
+							trig_abort(0) <= wb_dat_i(0);
 							wb_ack_o <= '1';
 						when x"10" => -- TX polarity
 							tx_polarity <= wb_dat_i((g_NUM_TX-1) downto 0);
@@ -307,11 +299,11 @@ begin
 							wb_dat_o <= tx_empty_hs;
 							wb_ack_o <= '1';
 						when x"03" => -- Read trigger enable
-							wb_dat_o(0) <= trig_en;
+							wb_dat_o(0) <= trig_en(0);
 							wb_dat_o(31 downto 1) <= (others => '0');
 							wb_ack_o <= '1';
 						when x"04" => -- Read trigger done
-							wb_dat_o(0) <= trig_done_hs;
+							wb_dat_o(0) <= trig_done_hs(0);
 							wb_dat_o(31 downto 1) <= (others => '0');
 							wb_ack_o <= '1';
 						when x"05" => -- Read trigger conf
@@ -409,7 +401,7 @@ begin
 			tx_enable_i => tx_enable_hs(I),
 			-- Looper
 			loop_pulse_i => tx_trig_pulse,
-			loop_mode_i => trig_en_hs,
+			loop_mode_i => trig_en_hs(0),
 			loop_word_i => trig_word_t(I),
 			loop_word_bytes_i => trig_word_lgth_hs(7 downto 0),
             -- Autozeroing
@@ -429,7 +421,7 @@ begin
                 trig_word_t(I) <= (others => '0');
                 tx_polarity_t(I) <= '0';
 			elsif rising_edge(tx_clk_i) then
-				--if (tx_enable_hs(I) = '1' and trig_en_hs = '1') then
+				--if (tx_enable_hs(I) = '1' and trig_en_hs(0) = '1') then
 				--	tx_data_o(I) <= tx_data_trig;
 				--else
                     trig_word_t(I) <= trig_word_hs;
@@ -456,9 +448,9 @@ begin
 		trig_time_i => trig_time_hs,
 		trig_count_i => trig_count_hs,
 		trig_conf_i => trig_conf_hs,
-		trig_en_i => trig_en_hs,
-		trig_abort_i => trig_abort_hs,
-		trig_done_o => trig_done
+		trig_en_i => trig_en_hs(0),
+		trig_abort_i => trig_abort_hs(0),
+		trig_done_o => trig_done(0)
 	);
     
     -- Create 1 tick per second for counter
@@ -490,7 +482,7 @@ begin
             ext_trig_t1 <= ext_trig_i;
             ext_trig_t2 <= ext_trig_t1;        
             ext_trig_t3 <= ext_trig_t2;        
-            if (trig_done = '1') then -- reset when trigger module is done
+            if (trig_done(0) = '1') then -- reset when trigger module is done
                 trig_in_freq_cnt <= (others => '0');
             else
                 if (ext_trig_t2 = '1' and ext_trig_t3 = '0') then -- positive edge

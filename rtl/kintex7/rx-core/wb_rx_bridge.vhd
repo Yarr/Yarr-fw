@@ -100,8 +100,8 @@ architecture Behavioral of wb_rx_bridge is
         clk_d    : in std_logic;     --destination clock
         rst_n    : in std_logic;     --active low reset
         --Signal ports
-        di       : in std_logic;
-        do       : out std_logic
+        di       : in std_logic_vector;
+        do       : out std_logic_vector
 	);
 	end component;
 	
@@ -247,7 +247,7 @@ begin
 	--Handshake instantiations for status registers
 	--Source clk is dma_clk_i, destination clock is sys_clk_i:
 	hs1: handshake generic map(g_WIDTH => 1) 
-		port map(clk_s=>dma_clk_i, clk_d=>sys_clk_i, rst_n=>rst_n_i, di=>data_fifo_empty_true, do=>data_fifo_empty_true_hs);
+		port map(clk_s=>dma_clk_i, clk_d=>sys_clk_i, rst_n=>rst_n_i, di(0)=>data_fifo_empty_true, do(0)=>data_fifo_empty_true_hs);
 	hs2: handshake generic map(g_WIDTH => 32) 
 		port map(clk_s=>dma_clk_i, clk_d=>sys_clk_i, rst_n=>rst_n_i, di=>dma_data_cnt_d_vec, do=>dma_data_cnt_d_hs);
 

@@ -135,8 +135,8 @@ architecture rtl of wb_trigger_logic is
         clk_d    : in std_logic;     --destination clock
         rst_n    : in std_logic;     --active low reset
         --Signal ports
-        di       : in std_logic;
-        do       : out std_logic
+        di       : in std_logic_vector;
+        do       : out std_logic_vector
 	);
 	end component;
 
@@ -289,7 +289,7 @@ begin
     hs9: handshake generic map(g_WIDTH => 16) 
         port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>deadtime, do=>deadtime_hs);
     hs10: handshake generic map(g_WIDTH => 1) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>local_reset, do=>local_reset_hs);
+        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di(0)=>local_reset, do(0)=>local_reset_hs);
 
 
     -- Sync/edge detector inputs
