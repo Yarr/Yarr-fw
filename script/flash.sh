@@ -1,6 +1,6 @@
 #!/bin/bash
 
-HW=("tef1001_R1" "tef1001_R2" "xpressk7_160" "xpressk7_325")
+HW=("tef1001_R1" "tef1001_R2" "xpressk7_160" "xpressk7_325" "kc705")
 CHIPS=("rd53" "fei4" "fe65p2")
 FMC=("ohio" "vhdci")
 SPEED=("640Mbps" "160Mbps")
@@ -129,6 +129,13 @@ elif [ $hw_index -eq 2 ] || [ $hw_index -eq 3 ]; then
     DEVICE_INDEX="1"
     MEM_OPTIONS="-size 128 -interface BPIx16"
     MEM_TYPE="28f00ap30b-bpi-x16"
+elif [ $hw_index -eq 4 ]; then
+	DEVICE_INDEX="0"
+	#Note: Both SPI and BPI functional, but BPI is faster
+	#MEM_OPTIONS="-size 128 -interface SPIx1"
+	#MEM_TYPE="mt25ql128-spi-x1_x2_x4"
+	MEM_OPTIONS="-size 128 -interface BPIx16"
+    MEM_TYPE="28f00ap30t-bpi-x16"
 else
     echo "FPGA board not chosen ... aborting!"
     exit 1

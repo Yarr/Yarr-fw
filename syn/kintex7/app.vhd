@@ -455,11 +455,25 @@ architecture Behavioral of app is
     attribute IODELAY_GROUP : STRING;
     attribute IODELAY_GROUP of IDELAYCTRL_inst : label is "aurora";
     signal idelay_rdy : std_logic;
+    
+    signal rst_s : std_logic;
+    signal rst_n_i : std_logic;
+    signal rst_comb : std_logic;
+    signal clk_40_n_s : std_logic;
+    signal clk_160_n_s : std_logic;
+    signal fe_cmd_n_o : std_logic_vector(c_TX_CHANNELS-1 downto 0);
 
 begin
     
     rst_n_s <= (not rst_i) or pll_locked_s or idelay_rdy or pll_200_locked_s;
-
+    rst_n_i <= not rst_i;
+    rst_s <= not rst_n_s;
+    rst_comb <= rst_i and not pll_200_locked_s;
+    
+    clk_40_n_s <= not clk_40_s;
+    clk_160_n_s <= not clk_160_s;
+    
+    fe_cmd_n_o <= not fe_cmd_o;
 		
     -- Activate LVDS buffer		
     pwdn_l <= (others => '1');
@@ -559,7 +573,7 @@ begin
         clk_300 => clk_300_s,
         clk_250 => open,
        -- Status and control signals                
-        resetn => not rst_i,
+        resetn => rst_n_i,
         locked => pll_200_locked_s            
       );
     
@@ -578,13 +592,13 @@ begin
      port map (
         RDY => idelay_rdy,       -- 1-bit output: Ready output
         REFCLK => clk_300_s, -- 1-bit input: Reference clock input
-        RST => rst_i and not pll_200_locked_s      -- 1-bit input: Active high reset input
+        RST => rst_comb      -- 1-bit input: Active high reset input
      );
 
     led_cnt:simple_counter
     port map(
 	    enable_i => '1',
-        rst_i => not rst_n_s,
+        rst_i => rst_s,
         clk_i => clk_40_s,
         count_o =>  led_count_s,
         gray_count_o => open
@@ -624,7 +638,7 @@ begin
         Port map( 
             clk_i => wb_clk_s,
             wb_clk_i => wb_clk_s,
-            rst_i => not rst_n_s,
+            rst_i => rst_s,
             
             ---------------------------------------------------------
             -- AXI-Stream bus
@@ -825,7 +839,7 @@ wb_dev_gen : if wb_dev_c = '1' generate
               D7 => fe_cmd_o(I),
               D8 => fe_cmd_o(I),
               OCE => '1',             -- 1-bit input: Output data clock enable
-              RST => not rst_n_s,             -- 1-bit input: Reset
+              RST => rst_s,             -- 1-bit input: Reset
               -- SHIFTIN1 / SHIFTIN2: 1-bit (each) input: Data input expansion (1-bit each)
               SHIFTIN1 => '0',
               SHIFTIN2 => '0',
@@ -868,11 +882,11 @@ wb_dev_gen : if wb_dev_c = '1' generate
             port map (
                 Q => fe_cmd_enc(I), -- 1-bit output data
                 C0 => clk_40_s, -- 1-bit clock input
-                C1 => not clk_40_s, -- 1-bit clock input
+                C1 => clk_40_n_s, -- 1-bit clock input
                 CE => '1',  -- 1-bit clock enable input
                 D0 => fe_cmd_o(I),   -- 1-bit data input (associated with C0)
-                D1 => not fe_cmd_o(I),   -- 1-bit data input (associated with C1)
-                R => not rst_n_s,    -- 1-bit reset input
+                D1 => fe_cmd_n_o(I),   -- 1-bit data input (associated with C1)
+                R => rst_s,    -- 1-bit reset input
                 S => '0'     -- 1-bit set input
             );
 		end generate man_gen;
@@ -893,11 +907,11 @@ wb_dev_gen : if wb_dev_c = '1' generate
 		port map (
 			Q => fe_clk_o(I), -- 1-bit output data
 			C0 => clk_160_s, -- 1-bit clock input
-			C1 => not clk_160_s, -- 1-bit clock input
+			C1 => clk_160_n_s, -- 1-bit clock input
 			CE => '1',  -- 1-bit clock enable input
 			D0 => '1',   -- 1-bit data input (associated with C0)
 			D1 => '0',   -- 1-bit data input (associated with C1)
-			R => not rst_n_s,    -- 1-bit reset input
+			R => rst_s,    -- 1-bit reset input
 			S => '0'     -- 1-bit set input
 		);
 	end generate;    
@@ -1146,7 +1160,7 @@ end generate;
      Port Map( 
          -- SYS CON
          clk_i            => wb_clk_s,
-         rst_i            => not rst_n_s,
+         rst_i            => rst_s,
          
          -- Wishbone Slave in
          wba_adr_i            => dma_bram_adr_s,
@@ -1293,7 +1307,7 @@ end generate;
             -- System Clock Ports
             sys_clk_p                       => sys_clk_p_i,
             sys_clk_n                       => sys_clk_n_i,
-            sys_rst                        => not rst_n_s
+            sys_rst                        => rst_s
         );
      
     --DDR3
