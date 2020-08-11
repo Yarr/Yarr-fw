@@ -35,9 +35,7 @@ use UNISIM.VComponents.all;
 library work;
 use work.app_pkg.all;
 use work.board_pkg.all;
-
-library xil_defaultlib;
-use xil_defaultlib.common_pkg.all;
+use work.common_pkg.all;
 
 entity app is
     Generic(

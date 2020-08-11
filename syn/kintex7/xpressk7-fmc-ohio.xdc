@@ -73,7 +73,7 @@ set_property PACKAGE_PIN R23 [get_ports {fe_data_n[15]}]
 #set_property PACKAGE_PIN AB26 [get_ports {ext_busy_o_p}]
 #set_property PACKAGE_PIN AC26 [get_ports {ext_busy_o_n}]
 set_property PACKAGE_PIN AB26 [get_ports {fe_data_p[12]}]
-set_property PACKAGE_PIN AC26 [get_ports {fe_data_n[12]}]
+set_property PACKAGE_PIN AC26 [get_ports {fe_data_p[12]}]
 
 #la03_n
 #la03_p
