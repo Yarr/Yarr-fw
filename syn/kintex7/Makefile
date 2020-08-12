@@ -8,10 +8,10 @@ vers:
 	./make_version.sh
 
 $(SUBDIRS): vers 
-	-@echo "Building $@/tef1001_R1" && cd $@/tef1001_R1 && $(MAKE) 1> buildlog.txt
-	-@echo "Building $@/tef1001_R2" && cd $@/tef1001_R2 && $(MAKE) 1> buildlog.txt
-	-@echo "Building $@/xpressk7_160" && cd $@/xpressk7_160 && $(MAKE) 1> buildlog.txt
-	-@echo "Building $@/xpressk7_325" && cd $@/xpressk7_325 && $(MAKE) 1> buildlog.txt
+	-@echo "Building $@/tef1001_R1" && cd $@/tef1001_R1 && $(MAKE) > /dev/null 2>&1
+	-@echo "Building $@/tef1001_R2" && cd $@/tef1001_R2 && $(MAKE) > /dev/null 2>&1
+	-@echo "Building $@/xpressk7_160" && cd $@/xpressk7_160 && $(MAKE) > /dev/null 2>&1
+	-@echo "Building $@/xpressk7_325" && cd $@/xpressk7_325 && $(MAKE) > /dev/null 2>&1
 	-@echo "Finished $@/tef1001_R1 ... moving bit file" && cp $@/tef1001_R1/yarr.runs/impl_1/top_level.bit $@/$@_tef1001_R1.bit
 	-@echo "Finished $@/tef1001_R2 ... moving bit file" && cp $@/tef1001_R2/yarr.runs/impl_1/top_level.bit $@/$@_tef1001_R2.bit
 	-@echo "Finished $@/xpressk7_160 ... moving bit file" && cp $@/xpressk7_160/yarr.runs/impl_1/top_level.bit $@/$@_xpressk7_160.bit
@@ -30,9 +30,9 @@ clean:
 	for d in $(SUBDIRS); do make -C $$d/xpressk7_325 clean; done
 
 deploy:
-	ssh lxplus.cern.ch "mkdir -p ~/www/yarr/firmware/$(GIT_VERS) &&\
+	ssh lxplus.cern.ch "mkdir -p ~/eos/www/yarr/firmware/$(GIT_VERS) &&\
 		rm -f ~/eos/www/yarr/firmware/latest &&\
 		ln -s ~/eos/www/yarr/firmware/$(GIT_VERS) ~/eos/www/yarr/firmware/latest"
-	rsync -av --include '*/' --include '*_*_*.bit' --exclude '*' --prune-empty-dirs ./ lxplus.cern.ch:~/www/yarr/firmware/$(GIT_VERS)
+	rsync -av --include '*/' --include '*_*_*.bit' --exclude '*' --prune-empty-dirs ./ lxplus.cern.ch:~/eos/www/yarr/firmware/$(GIT_VERS)
 
 .PHONY: all clean hdl vers $(SUBDIRS)
