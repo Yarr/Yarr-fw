@@ -23,8 +23,8 @@ entity handshake is
         rst_n     : in std_logic;     --active low reset
 
         --Signal ports
-        di       : in std_logic_vector(g_DATA_WIDTH-1 downto 0);    --data in
-        do       : out std_logic_vector(g_DATA_WIDTH-1 downto 0)    --data out
+        di       : in std_logic_vector(g_WIDTH-1 downto 0);    --data in
+        do       : out std_logic_vector(g_WIDTH-1 downto 0)    --data out
     );
 end handshake;
 
@@ -38,7 +38,7 @@ architecture rtl of handshake is
     signal ack 	        : std_logic;
     signal busy 		: std_logic;
     signal valid 		: std_logic;
-    signal transfer_data : std_logic_vector(g_DATA_WIDTH-1 downto 0)
+    signal transfer_data : std_logic_vector(g_WIDTH-1 downto 0);
 begin
 
     --Process to assign valid bit, and copy input data to transfer region
@@ -51,7 +51,7 @@ begin
             if (busy = '0' and valid = '0') then
                 transfer_data <= di;
                 valid <= '1';
-            elsif (ack_prev) then
+            elsif (ack_prev = '1') then
                 valid <= '0';
             end if;
         end if;
@@ -105,7 +105,7 @@ begin
 	pr_enable : process(clk_d, rst_n)
 	begin
 	   if (rst_n = '0') then
-	      	do <= '0';
+	      	do <= (others =>'0');
        elsif rising_edge(clk_d) then
             if(req_prev = '0' and req_new = '1') then
                 do <= transfer_data;

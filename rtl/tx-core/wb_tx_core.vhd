@@ -357,33 +357,20 @@ begin
 
 	--Handshake instantiations for status registers
 	--Source clk is wb, destination clock is tx:
-	hs1: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_enable, do=>tx_enable_hs);
-	hs2: handshake generic map(g_WIDTH => 1) 
-		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_en, do=>trig_en_hs);
-	hs3: handshake generic map(g_WIDTH => 4) 
-		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_conf, do=>trig_conf_hs);
-	hs4: handshake generic map(g_WIDTH => 64) 
-		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_time, do=>trig_time_hs);
-	hs5: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_count, do=>trig_count_hs);
-	hs6: handshake generic map(g_WIDTH => 1024) 
-		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word, do=>trig_word_hs);
-	hs7: handshake generic map(g_WIDTH => 1) 
-		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_abort, do=>trig_abort_hs);
-	hs8: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_freq, do=>trig_freq_hs);
-	hs9: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word_length, do=>trig_word_lgth_hs);
-	hs10: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_polarity, do=>tx_polarity_hs);
+	hs1: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_enable, do=>tx_enable_hs);
+	hs2: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_en, do=>trig_en_hs);
+	hs3: handshake generic map(g_WIDTH => 4) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_conf, do=>trig_conf_hs);
+	hs4: handshake generic map(g_WIDTH => 64) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_time, do=>trig_time_hs);
+	hs5: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_count, do=>trig_count_hs);
+	hs6: handshake generic map(g_WIDTH => 1024) 	port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word, do=>trig_word_hs);
+	hs7: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_abort, do=>trig_abort_hs);
+	hs8: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_freq, do=>trig_freq_hs);
+	hs9: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word_length, do=>trig_word_lgth_hs);
+	hs10: handshake generic map(g_WIDTH => g_NUM_TX)	port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_polarity, do=>tx_polarity_hs);
 	--Source clk is tx, destination clock is wb:
-	hs11: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>tx_empty, do=>tx_empty_hs);
-	hs12: handshake generic map(g_WIDTH => 1) 
-		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_done, do=>trig_done_hs);
-	hs13: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_in_freq, do=>trig_in_freq_hs);
+	hs11: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>tx_empty, do=>tx_empty_hs);
+	hs12: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_done, do=>trig_done_hs);
+	hs13: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_in_freq, do=>trig_in_freq_hs);
 
 
 	tx_channels: for I in 0 to g_NUM_TX-1 generate
