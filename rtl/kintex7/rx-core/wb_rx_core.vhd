@@ -277,15 +277,11 @@ begin
 
 	--Handshake instantiations for status registers
 	--Source clk is wb_clk_i, destination clock is rx_clk_i:
-	hs1: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_enable_d, do=>rx_enable_d_hs);
-	hs2: handshake generic map(g_WIDTH => g_NUM_RX*g_NUM_LANES) 
-		port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_polarity, do=>rx_polarity_hs);
+	hs1: handshake generic map(g_WIDTH => 32) 	port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_enable_d, do=>rx_enable_d_hs);
+	hs2: handshake generic map(g_WIDTH => g_NUM_RX*g_NUM_LANES) port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_polarity, do=>rx_polarity_hs);
 	--Source clk is rx_clk_i, destination clock is wb_clk_i
-	hs3: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>rx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>rx_status, do=>rx_status_hs);
-	hs4: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>rx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>rx_enable_dd, do=>rx_enable_dd_hs);
+	hs3: handshake generic map(g_WIDTH => 32) 	port map(clk_s=>rx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>rx_status, do=>rx_status_hs);
+	hs4: handshake generic map(g_WIDTH => 32) 	port map(clk_s=>rx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>rx_enable_dd, do=>rx_enable_dd_hs);
 	
 	-- Arbiter
 	cmp_frr_arbiter : frr_arbiter port map (

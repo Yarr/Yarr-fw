@@ -270,26 +270,16 @@ begin
 
     --Handshake instantiations for status registers
 	--Source clk is wb, destination clock is clk_i:
-	hs1: handshake generic map(g_WIDTH => 32) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_mask, do=>trig_mask_hs);
-    hs2: handshake generic map(g_WIDTH => 8) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_tag_mode, do=>trig_tag_mode_hs);
-    hs3: handshake generic map(g_WIDTH => 32) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_logic, do=>trig_logic_hs);
-    hs4: handshake generic map(g_WIDTH => 4) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_edge, do=>trig_edge_hs);
-    hs5: handshake generic map(g_WIDTH => delay_width) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch0_delay, do=>ch0_delay_hs);
-    hs6: handshake generic map(g_WIDTH => delay_width) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch1_delay, do=>ch1_delay_hs);
-    hs7: handshake generic map(g_WIDTH => delay_width) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch2_delay, do=>ch2_delay_hs);
-    hs8: handshake generic map(g_WIDTH => delay_width) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch3_delay, do=>ch3_delay_hs);
-    hs9: handshake generic map(g_WIDTH => 16) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>deadtime, do=>deadtime_hs);
-    hs10: handshake generic map(g_WIDTH => 1) 
-        port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di(0)=>local_reset, do(0)=>local_reset_hs);
+	hs1: handshake generic map(g_WIDTH => 32) 			port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_mask, do=>trig_mask_hs);
+    hs2: handshake generic map(g_WIDTH => 8) 			port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_tag_mode, do=>trig_tag_mode_hs);
+    hs3: handshake generic map(g_WIDTH => 32) 			port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_logic, do=>trig_logic_hs);
+    hs4: handshake generic map(g_WIDTH => 4) 			port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>trig_edge, do=>trig_edge_hs);
+    hs5: handshake generic map(g_WIDTH => delay_width)	port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch0_delay, do=>ch0_delay_hs);
+    hs6: handshake generic map(g_WIDTH => delay_width) 	port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch1_delay, do=>ch1_delay_hs);
+    hs7: handshake generic map(g_WIDTH => delay_width) 	port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch2_delay, do=>ch2_delay_hs);
+    hs8: handshake generic map(g_WIDTH => delay_width) 	port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>ch3_delay, do=>ch3_delay_hs);
+    hs9: handshake generic map(g_WIDTH => 16) 			port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di=>deadtime, do=>deadtime_hs);
+    hs10: handshake generic map(g_WIDTH => 1) 			port map(clk_s=>wb_clk_i, clk_d=>clk_i, rst_n=>rst_n_i, di(0)=>local_reset, do(0)=>local_reset_hs);
 
 
     -- Sync/edge detector inputs

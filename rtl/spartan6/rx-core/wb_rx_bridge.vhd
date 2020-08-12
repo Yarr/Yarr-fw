@@ -246,10 +246,8 @@ begin
 
 	--Handshake instantiations for status registers
 	--Source clk is dma_clk_i, destination clock is sys_clk_i:
-	hs1: handshake generic map(g_WIDTH => 1) 
-		port map(clk_s=>dma_clk_i, clk_d=>sys_clk_i, rst_n=>rst_n_i, di=>data_fifo_empty_true, do=>data_fifo_empty_true_hs);
-	hs2: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>dma_clk_i, clk_d=>sys_clk_i, rst_n=>rst_n_i, di=>dma_data_cnt_d_vec, do=>dma_data_cnt_d_hs);
+	hs1: handshake generic map(g_WIDTH => 1) 	port map(clk_s=>dma_clk_i, clk_d=>sys_clk_i, rst_n=>rst_n_i, di=>data_fifo_empty_true, do=>data_fifo_empty_true_hs);
+	hs2: handshake generic map(g_WIDTH => 32)	port map(clk_s=>dma_clk_i, clk_d=>sys_clk_i, rst_n=>rst_n_i, di=>dma_data_cnt_d_vec, do=>dma_data_cnt_d_hs);
 
 	-- Data from Rx
 	data_rec : process (sys_clk_i, rst_n_i)

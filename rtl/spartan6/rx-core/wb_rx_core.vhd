@@ -194,8 +194,7 @@ begin
 
 	--Handshake instantiations for status registers
 	--Source clk is wb, destination clock is tx:
-	hs1: handshake generic map(g_WIDTH => 32) 
-		port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_enable, do=>rx_enable_hs);
+	hs1: handshake generic map(g_WIDTH => 32) port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_enable, do=>rx_enable_hs);
 	
 	-- Arbiter
 	cmp_rr_arbiter : rr_arbiter port map (
