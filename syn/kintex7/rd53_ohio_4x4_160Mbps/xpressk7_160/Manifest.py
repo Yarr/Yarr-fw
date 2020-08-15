@@ -11,8 +11,6 @@ syn_top = "top_level"
 syn_project = "yarr"
 syn_tool = "vivado"
 
-syn_post_synthesize_cmd = "vivado -mode tcl -source handshake_sdc.tcl"
-
 #library = "work"
 
 modules = {
