@@ -39,6 +39,9 @@ architecture rtl of handshake is
     signal busy 		: std_logic;
     signal valid 		: std_logic;
     signal transfer_data : std_logic_vector(g_WIDTH-1 downto 0);
+    signal transfer_data_d : std_logic_vector(g_WIDTH-1 downto 0);
+
+    
 begin
 
     --Process to assign valid bit, and copy input data to transfer region
@@ -108,7 +111,8 @@ begin
 	      	do <= (others =>'0');
        elsif rising_edge(clk_d) then
             if(req_prev = '0' and req_new = '1') then
-                do <= transfer_data;
+                transfer_data_d <= transfer_data;
+                do <= transfer_data_d;
             end if;
 	   end if;
 	end process pr_enable;

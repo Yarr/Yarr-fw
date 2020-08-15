@@ -166,8 +166,8 @@ architecture behavioral of wb_tx_core is
 	signal trig_time_h_d : std_logic_vector(31 downto 0);
 	signal trig_count : std_logic_vector(31 downto 0); -- Fixed number of triggers
 	signal trig_conf : std_logic_vector(3 downto 0); -- Internal, external, pseudo random, 
-	signal trig_en : std_logic_vector(0 downto 0);
-	signal trig_done : std_logic_vector(0 downto 0);
+	signal trig_en : std_logic;
+	signal trig_done : std_logic;
 	signal trig_word_length : std_logic_vector(31 downto 0);
 	signal trig_word : std_logic_vector(1023 downto 0);
     type trig_word_array is array (g_NUM_TX-1 downto 0) of std_logic_vector(1023 downto 0);
@@ -199,18 +199,23 @@ architecture behavioral of wb_tx_core is
 
 	--Handshake intermittent signals
 	signal tx_enable_hs 		: std_logic_vector(31 downto 0) := (others => '0');
-	signal trig_en_hs 			: std_logic_vector(0 downto 0);
+	signal trig_en_hs 			: std_logic;
 	signal trig_conf_hs 		: std_logic_vector(3 downto 0);
 	signal trig_time_hs 		: std_logic_vector(63 downto 0);
 	signal trig_count_hs 		: std_logic_vector(31 downto 0);
 	signal trig_word_hs 		: std_logic_vector(1023 downto 0);
-	signal trig_abort_hs 		: std_logic_vector(0 downto 0);
+	signal trig_abort_hs 		: std_logic;
 	signal trig_freq_hs 		: std_logic_vector(31 downto 0);
 	signal trig_word_lgth_hs 	: std_logic_vector(31 downto 0);
 	signal tx_polarity_hs 		: std_logic_vector((g_NUM_TX-1) downto 0);
 	signal tx_empty_hs			: std_logic_vector(31 downto 0) := (others => '0');
-	signal trig_done_hs			: std_logic_vector(0 downto 0);
+	signal trig_done_hs			: std_logic;
 	signal trig_in_freq_hs		: std_logic_vector(31 downto 0);
+	signal pulse_word_hs 		: std_logic_vector(31 downto 0);
+	signal pulse_interval_hs	: std_logic_vector(15 downto 0);
+	signal sync_word_hs 		: std_logic_vector(31 downto 0);
+	signal sync_interval_hs 	: std_logic_vector(7 downto 0);
+	signal idle_word_hs 		: std_logic_vector(31 downto 0);
 
     signal pulse_word : std_logic_vector(31 downto 0);
     signal pulse_interval : std_logic_vector(15 downto 0);
@@ -235,8 +240,8 @@ begin
 			wb_wr_en <= (others => '0');
 			tx_enable <= (others => '0');
 			wb_dat_t <= (others => '0');
-			trig_en(0) <= '0';
-			trig_abort(0)  <= '0';
+			trig_en <= '0';
+			trig_abort  <= '0';
             tx_enable <= (others => '0');
             trig_conf <= (others => '0');
             trig_time_h <= (others => '0');
@@ -246,7 +251,6 @@ begin
             trig_count <= (others => '0');
             trig_word <= (others => '0');
             trig_word_pointer <= (others => '0');
-            trig_abort <= '0';
             trig_in_freq_d <= (others => '0');
             pulse_word <= c_TX_AZ_WORD;
             pulse_interval <= std_logic_vector(c_TX_AZ_INTERVAL);
@@ -259,7 +263,7 @@ begin
             trig_time_h_d <= trig_time_h;
             trig_time_l_d <= trig_time_l;
 			trig_time <= trig_time_h_d & trig_time_l_d; -- delay for more flexible routing
-			trig_abort(0)  <= '0';
+			trig_abort  <= '0';
 			trig_in_freq_d <= trig_in_freq_hs; -- delay for more flexible routing
 			if (wb_cyc_i = '1' and wb_stb_i = '1') then
 				if (wb_we_i = '1') then
@@ -272,7 +276,7 @@ begin
 							tx_enable <= wb_dat_i;
 							wb_ack_o <= '1';
 						when x"03" => -- Set trigger enable
-							trig_en(0) <= wb_dat_i(0);
+							trig_en <= wb_dat_i(0);
 							wb_ack_o <= '1';
 						when x"05" => -- Set trigger conf
 							trig_conf <= wb_dat_i(3 downto 0);
@@ -305,7 +309,7 @@ begin
 							pulse_interval <= wb_dat_i(15 downto 0);
 							wb_ack_o <= '1';
 						when x"0F" => -- Toggle trigger abort
-							trig_abort(0) <= wb_dat_i(0);
+							trig_abort <= wb_dat_i(0);
 							wb_ack_o <= '1';
 						when x"10" => -- TX polarity
 							tx_polarity <= wb_dat_i((g_NUM_TX-1) downto 0);
@@ -331,11 +335,11 @@ begin
 							wb_dat_o <= tx_empty_hs;
 							wb_ack_o <= '1';
 						when x"03" => -- Read trigger enable
-							wb_dat_o(0) <= trig_en(0);
+							wb_dat_o(0) <= trig_en;
 							wb_dat_o(31 downto 1) <= (others => '0');
 							wb_ack_o <= '1';
 						when x"04" => -- Read trigger done
-							wb_dat_o(0) <= trig_done_hs(0);
+							wb_dat_o(0) <= trig_done_hs;
 							wb_dat_o(31 downto 1) <= (others => '0');
 							wb_ack_o <= '1';
 						when x"05" => -- Read trigger conf
@@ -400,19 +404,24 @@ begin
 	--Handshake instantiations for status registers
 	--Source clk is wb, destination clock is tx:
 	hs1: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_enable, do=>tx_enable_hs);
-	hs2: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_en, do=>trig_en_hs);
+	hs2: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di(0)=>trig_en, do(0)=>trig_en_hs);
 	hs3: handshake generic map(g_WIDTH => 4) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_conf, do=>trig_conf_hs);
 	hs4: handshake generic map(g_WIDTH => 64) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_time, do=>trig_time_hs);
 	hs5: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_count, do=>trig_count_hs);
 	hs6: handshake generic map(g_WIDTH => 1024) 	port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word, do=>trig_word_hs);
-	hs7: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_abort, do=>trig_abort_hs);
+	hs7: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di(0)=>trig_abort, do(0)=>trig_abort_hs);
 	hs8: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_freq, do=>trig_freq_hs);
 	hs9: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word_length, do=>trig_word_lgth_hs);
 	hs10: handshake generic map(g_WIDTH => g_NUM_TX)	port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_polarity, do=>tx_polarity_hs);
+	hs11: handshake generic map(g_WIDTH => 32)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>pulse_word, do=>pulse_word_hs);
+	hs12: handshake generic map(g_WIDTH => 16)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>pulse_interval, do=>pulse_interval_hs);
+	hs13: handshake generic map(g_WIDTH => 32)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>sync_word, do=>sync_word_hs);
+	hs14: handshake generic map(g_WIDTH => 8)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>sync_interval, do=>sync_interval_hs);
+	hs15: handshake generic map(g_WIDTH => 32)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>idle_word, do=>idle_word_hs);
 	--Source clk is tx, destination clock is wb:
-	hs11: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>tx_empty, do=>tx_empty_hs);
-	hs12: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_done, do=>trig_done_hs);
-	hs13: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_in_freq, do=>trig_in_freq_hs);
+	hs16: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>tx_empty, do=>tx_empty_hs);
+	hs17: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di(0)=>trig_done, do(0)=>trig_done_hs);
+	hs18: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_in_freq, do=>trig_in_freq_hs);
 
 
 	tx_channels: for I in 0 to g_NUM_TX-1 generate
@@ -430,15 +439,15 @@ begin
 			tx_enable_i => tx_enable_hs(I),
 			-- Looper
 			loop_pulse_i => tx_trig_pulse,
-			loop_mode_i => trig_en_hs(0),
+			loop_mode_i => trig_en_hs,
 			loop_word_i => trig_word_t(I),
-			loop_word_bytes_i => trig_word_length(7 downto 0),
+			loop_word_bytes_i => trig_word_lgth_hs(7 downto 0),
             -- Pulse
             pulse_word_i => pulse_words(I),
-            pulse_interval_i => pulse_interval,
+            pulse_interval_i => pulse_interval_hs,
             -- Sync word
             sync_word_i => sync_words(I),
-            sync_interval_i => sync_interval,
+            sync_interval_i => sync_interval_hs,
             -- Idle word
             idle_word_i => idle_words(I),
 			-- Status
@@ -459,15 +468,15 @@ begin
                 sync_words(I) <= c_TX_SYNC_WORD;
                 idle_words(I) <= c_TX_IDLE_WORD;
 			elsif rising_edge(tx_clk_i) then
-				--if (tx_enable_hs(I) = '1' and trig_en_hs(0) = '1') then
+				--if (tx_enable_hs(I) = '1' and trig_en_hs = '1') then
 				--	tx_data_o(I) <= tx_data_trig;
 				--else
                     trig_word_t(I) <= trig_word_hs;
 					tx_data_o(I) <= tx_data_cmd(I) xor tx_polarity_t(I);
                     tx_polarity_t(I) <= tx_polarity_hs(I);
-                    sync_words(I) <= sync_word;
-                    pulse_words(I) <= pulse_word;
-                    idle_words(I) <= idle_word;
+                    sync_words(I) <= sync_word_hs;
+                    pulse_words(I) <= pulse_word_hs;
+                    idle_words(I) <= idle_word_hs;
 
 				--end if;
 			end if;
@@ -490,9 +499,9 @@ begin
 		trig_time_i => trig_time_hs,
 		trig_count_i => trig_count_hs,
 		trig_conf_i => trig_conf_hs,
-		trig_en_i => trig_en_hs(0),
-		trig_abort_i => trig_abort_hs(0),
-		trig_done_o => trig_done(0)
+		trig_en_i => trig_en_hs,
+		trig_abort_i => trig_abort_hs,
+		trig_done_o => trig_done
 	);
     
     -- Create 1 tick per second for counter
@@ -524,7 +533,7 @@ begin
             ext_trig_t1 <= ext_trig_i;
             ext_trig_t2 <= ext_trig_t1;        
             ext_trig_t3 <= ext_trig_t2;        
-            if (trig_done(0) = '1') then -- reset when trigger module is done
+            if (trig_done = '1') then -- reset when trigger module is done
                 trig_in_freq_cnt <= (others => '0');
             else
                 if (ext_trig_t2 = '1' and ext_trig_t3 = '0') then -- positive edge

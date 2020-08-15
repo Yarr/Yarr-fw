@@ -11,6 +11,8 @@ syn_top = "top_level"
 syn_project = "yarr"
 syn_tool = "vivado"
 
+syn_post_synthesize_cmd = "vivado -mode tcl -source handshake_sdc.tcl"
+
 #library = "work"
 
 modules = {
@@ -30,6 +32,8 @@ files = [
 "../../xpressk7.xdc",
 "../../xpressk7-fmc-ohio.xdc",
 "../../xpressk7-timing.xdc",
+"handshake_sdc.tcl",
+"../../handshake.xdc",
 "../../version.vhd",
 ]
 
