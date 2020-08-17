@@ -30,7 +30,7 @@ files = [
 "../../xpressk7.xdc",
 "../../xpressk7-fmc-ohio.xdc",
 "../../xpressk7-timing.xdc",
-"handshake_sdc.tcl",
+"../../handshake_sdc.tcl",
 "../../handshake.xdc",
 "../../version.vhd",
 ]
