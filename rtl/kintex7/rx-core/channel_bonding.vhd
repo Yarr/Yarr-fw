@@ -21,18 +21,19 @@ entity channel_bonding is
         g_NUM_LANES : integer range 1 to 4 := 1
     );
     port (
-        clk         : in std_logic;
+        clk             : in std_logic;
         -- Input
-        rx_data_i   : in rx_data_array(g_NUM_LANES-1 downto 0);
-        rx_header_i : in rx_header_array(g_NUM_LANES-1 downto 0);
-        rx_valid_i  : in std_logic_vector(g_NUM_LANES-1 downto 0);
-        rx_stat_i   : in rx_status_array(g_NUM_LANES-1 downto 0);
+        rx_data_i       : in rx_data_array(g_NUM_LANES-1 downto 0);
+        rx_header_i     : in rx_header_array(g_NUM_LANES-1 downto 0);
+        rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
+        rx_stat_i       : in rx_status_array(g_NUM_LANES-1 downto 0);
+        active_lanes    : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
         -- Output
-        rx_data_o   : out rx_data_array(g_NUM_LANES-1 downto 0);
-        rx_header_o : out rx_header_array(g_NUM_LANES-1 downto 0);
-        rx_valid_o  : out std_logic_vector(g_NUM_LANES-1 downto 0);
-        rx_stat_o   : out rx_status_array(g_NUM_LANES-1 downto 0)       
+        rx_data_o       : out rx_data_array(g_NUM_LANES-1 downto 0);
+        rx_header_o     : out rx_header_array(g_NUM_LANES-1 downto 0);
+        rx_valid_o      : out std_logic_vector(g_NUM_LANES-1 downto 0);
+        rx_stat_o       : out rx_status_array(g_NUM_LANES-1 downto 0)       
     );
 end channel_bonding;
 
@@ -103,10 +104,11 @@ begin
     end process;
 
     --If a lane is early, output from its shift reg. Else, lane itself is outputted
+    --Inactive lanes are directly outputted
     pr_output : process(rx_data_i, data_sr)
     begin
         for I in 0 to g_NUM_LANES-1 loop
-            if (lane_early(I) = '1') then
+            if (lane_early(I) = '1' and active_lanes(I) = '1') then
                 rx_data_s(I) <= data_sr(I);
             else
                 rx_data_s(I) <= rx_data_i(I);
