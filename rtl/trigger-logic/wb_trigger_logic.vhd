@@ -352,7 +352,7 @@ begin
     cmp_eudet_tlu: eudet_tlu
     port map (
         clk_i => clk_i,
-        rst_n_i => rst_n_i and (not local_reset),
+        rst_n_i => rst_n_i,
         eudet_trig_i => eudet_trig_i,
         eudet_rst_i => eudet_rst_i,
         eudet_busy_o => eudet_busy_o,
