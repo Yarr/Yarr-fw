@@ -30,8 +30,6 @@ files = [
 "../../tef1001_R1.xdc",
 "../../tef1001-fmc-ohio.xdc",
 "../../xpressk7-timing.xdc",
-"../../handshake_sdc.tcl",
-"../../handshake.xdc",
 "../../version.vhd",
 ]
 
