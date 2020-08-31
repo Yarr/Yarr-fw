@@ -122,7 +122,21 @@ architecture behavioral of wb_rx_core is
             rx_valid_o : out std_logic;
             rx_stat_o : out std_logic_vector(7 downto 0)
         );
-    end component aurora_rx_channel;
+	end component aurora_rx_channel;
+	
+	component handshake
+	generic (
+        g_WIDTH : integer := 1
+    );
+	port (
+		clk_s    : in std_logic;     --source clock
+        clk_d    : in std_logic;     --destination clock
+        rst_n    : in std_logic;     --active low reset
+        --Signal ports
+        di       : in std_logic_vector;
+        do       : out std_logic_vector
+	);
+	end component;
 	
 	COMPONENT rx_channel_fifo
 		PORT (
@@ -186,6 +200,12 @@ architecture behavioral of wb_rx_core is
 	signal channel : integer range 0 to g_NUM_RX-1;
 
 	signal debug : std_logic_vector(31 downto 0);
+
+	--Handshake signals
+	signal rx_enable_d_hs : std_logic_vector(31 downto 0);
+	signal rx_polarity_hs : std_logic_vector((g_NUM_RX*g_NUM_LANES)-1 downto 0);
+	signal rx_status_hs : std_logic_vector(31 downto 0);
+	signal rx_enable_dd_hs : std_logic_vector(31 downto 0);
 	
 begin
 	debug_o <= debug;
@@ -240,7 +260,7 @@ begin
 						wb_dat_o <= rx_enable;
 						wb_ack_o <= '1';
                     elsif (wb_adr_i(3 downto 0) = x"1") then -- Link status
-                        wb_dat_o <= rx_status;
+                        wb_dat_o <= rx_status_hs;
                         wb_ack_o <= '1';
                     elsif (wb_adr_i(3 downto 0) = x"2") then -- RX polarity
                         wb_dat_o <= (others => '0');
@@ -254,13 +274,21 @@ begin
 			end if;
 		end if;
 	end process wb_proc;
+
+	--Handshake instantiations for status registers
+	--Source clk is wb_clk_i, destination clock is rx_clk_i:
+	hs1: handshake generic map(g_WIDTH => 32) 	port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_enable_d, do=>rx_enable_d_hs);
+	hs2: handshake generic map(g_WIDTH => g_NUM_RX*g_NUM_LANES) port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_polarity, do=>rx_polarity_hs);
+	--Source clk is rx_clk_i, destination clock is wb_clk_i
+	hs3: handshake generic map(g_WIDTH => 32) 	port map(clk_s=>rx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>rx_status, do=>rx_status_hs);
+	hs4: handshake generic map(g_WIDTH => 32) 	port map(clk_s=>rx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>rx_enable_dd, do=>rx_enable_dd_hs);
 	
 	-- Arbiter
 	cmp_frr_arbiter : frr_arbiter port map (
 		clk_i => wb_clk_i,
 		rst_i => not rst_n_i,
 		req_i => not rx_fifo_empty_t,
-        en_i => rx_enable_dd(g_NUM_RX-1 downto 0), 
+        en_i => rx_enable_dd_hs(g_NUM_RX-1 downto 0), 
 		gnt_o => rx_fifo_rden_t
 	);
 	
@@ -317,9 +345,9 @@ begin
             rx_status <= (others => '0');
             rx_polarity_t <= (others => '0');
         elsif rising_edge(rx_clk_i) then
-            rx_enable_dd <= rx_enable_d;
+            rx_enable_dd <= rx_enable_d_hs;
             rx_status <= rx_status_s;
-            rx_polarity_t <= rx_polarity;
+            rx_polarity_t <= rx_polarity_hs;
         end if;
    end process enable_sync;
 	

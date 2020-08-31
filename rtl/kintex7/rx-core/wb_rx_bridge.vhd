@@ -90,6 +90,7 @@ architecture Behavioral of wb_rx_bridge is
 		empty : OUT STD_LOGIC
 	);
 	END COMPONENT;
+
 	
 	-- Constants
 	constant c_ALMOST_FULL_THRESHOLD : unsigned(7 downto 0) := TO_UNSIGNED(240, 8);
@@ -149,6 +150,7 @@ architecture Behavioral of wb_rx_bridge is
 	-- Registers
 	signal loopback : std_logic;
 	signal data_rate : std_logic_vector(31 downto 0);
+
 	
 begin
 	--Tie offs
