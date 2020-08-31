@@ -110,20 +110,19 @@ architecture rtl of tx_channel is
 	signal loop_empty : std_logic;
 	signal loop_mode_s : std_logic;
 	signal loop_word_s : std_logic_vector(1023 downto 0);
-  signal loop_word_bytes_s : std_logic_vector(7 downto 0);
+    signal loop_word_bytes_s : std_logic_vector(7 downto 0);
 	
-
-  signal pulse_word_s : std_logic_vector(31 downto 0);
-  signal pulse_interval_s : std_logic_vector(15 downto 0);
-  signal sync_word_s : std_logic_vector(31 downto 0);
-  signal sync_interval_s : std_logic_vector(7 downto 0);
-  signal idle_word_s : std_logic_vector(31 downto 0);
-
+    signal pulse_word_s : std_logic_vector(31 downto 0);
+    signal pulse_interval_s : std_logic_vector(15 downto 0);
+    signal sync_word_s : std_logic_vector(31 downto 0);
+    signal sync_interval_s : std_logic_vector(7 downto 0);
+    signal idle_word_s : std_logic_vector(31 downto 0);
 begin
 
 	-- Write to FiFo
 	tx_fifo_wr <= wb_wr_en_i;
-	tx_fifo_din <= wb_dat_i;	
+	tx_fifo_din <= wb_dat_i;
+	
 	
 	-- Status outputs
 	tx_underrun_o <= tx_fifo_rd and tx_fifo_empty;
@@ -204,8 +203,7 @@ begin
 	           loop_word_s(95 downto 64) when (loop_cnt = to_unsigned(3, 8)) else
 	           loop_word_s(63 downto 32) when (loop_cnt = to_unsigned(2, 8)) else
                loop_word_s(31 downto 0) when (loop_cnt = to_unsigned(1, 8)) else
-			   x"69696969";
-			   
+               x"69696969";
 	
 	cmp_sport: serial_port PORT MAP(
 		clk_i => tx_clk_i,
