@@ -58,10 +58,6 @@ architecture behavioral of trig_code_gen is
 
 begin
 
-    --Shift trig_bit into reg at the end of each bunch crossing
-    shift <= (counter4 = "11");
-    sr_rd_en <= (counter32 = "11111");
-
     --Increment counters for bunch crossing (4) and reg filling (32)
     pr_incr_cnt : process(clk_i)
     begin
@@ -71,6 +67,22 @@ begin
         elsif rising_edge(clk_i) then
             counter4 <= counter4 + 1;
             counter32 <= counter32 + 1;
+        end if;
+    end process;
+    
+    --Shift trig_bit into reg at the end of each bunch crossing
+    pr_enable_sr : process(counter4, counter32)
+    begin
+        if (counter4 = "11") then
+            shift <= '1';
+        else
+            shift <= '0';
+        end if;
+        
+        if (counter32 = "00000") then
+            sr_rd_en <= '1';
+        else
+            sr_rd_en <= '0';
         end if;
     end process;
 
@@ -84,15 +96,15 @@ begin
     --Detecting rising edge of pulse
     pulse_edge <= pulse_i and (not pulse_prev);
 
-    pr_trig_bit : process(clk_i)
+    pr_trig_bit : process(pulse_edge, trig_bit)
     begin
-        if rising_edge(clk_i) then
+        --if rising_edge(clk_i) then
             if (pulse_edge = '1') then
                 trig_bit <= '1';
-            elsif (counter4 = '0') then
+            elsif (counter4 = "00") then
                 trig_bit <= '0';
             end if;
-        end if;
+        --end if;
     end process;
 
     cmp_sr : trig_shift_reg PORT MAP(
