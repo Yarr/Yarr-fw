@@ -14,3 +14,5 @@ These files can be thought of as the top-levels for their respective directories
 ## Implementation Details
 
 This handshake protocol was modified for multi-bit signals so that data is passed to a transfer bus at the beginning of the handshake, and the acknowledge flag is not raised until the transfer data is successfully passed to the destination clock domain. 
+ 
+![functional diagram](https://github.com/LaurenChoquer/Yarr-fw/blob/cdc_testing/doc/handshake_diagram.JPG)
