@@ -55,17 +55,26 @@ architecture behavioral of channel_bonding is
 begin
 
     rx_data_o <= rx_data_s;
+    
+    pr_shift_data : process(clk)
+    begin
+        if rising_edge(clk) then
+            for I in 0 to g_NUM_LANES-1 loop
+                data_sr(I) <= rx_data_i(I);
+            end loop;
+        end if;
+    end process;
 
     --Putting data inputs into shift regs
-    reg_gen : for I in 0 to g_NUM_LANES-1 generate
-        cmp_data_shift_reg : shift_reg
-        generic map(sr_depth => 2, sr_width => 64)
-        port map(
-            clk => clk,
-            din => rx_data_i(I),
-            dout => data_d(I)
-        );
-    end generate reg_gen;
+--    reg_gen : for I in 0 to g_NUM_LANES-1 generate
+--        u_shift_reg : shift_reg
+--        generic map(sr_depth => 2, sr_width => 64)
+--        port map(
+--            clk => clk,
+--            din => rx_data_i(I),
+--            dout => data_sr(I)
+--        );
+--    end generate reg_gen;
 
     --Need to detect which lanes are currently sending channel bonding frames
     pr_detect_cb_frames : process(rx_data_i, rx_header_i)
