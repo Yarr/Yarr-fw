@@ -108,19 +108,20 @@ architecture behavioral of aurora_rx_channel is
         g_NUM_LANES : integer range 1 to 4 := 1
         );
         port (
-            clk         : in std_logic;
+            clk             : in std_logic;
             -- Input
-            rx_data_i   : in rx_data_array(g_NUM_LANES-1 downto 0);
-            rx_header_i : in rx_header_array(g_NUM_LANES-1 downto 0);
-            rx_valid_i  : in std_logic_vector(g_NUM_LANES-1 downto 0);
-            rx_stat_i   : in rx_status_array(g_NUM_LANES-1 downto 0);
-            active_lanes  : in std_logic_vector(g_NUM_LANES-1 downto 0);
+            rx_data_i       : in rx_data_array(g_NUM_LANES-1 downto 0);
+            rx_header_i     : in rx_header_array(g_NUM_LANES-1 downto 0);
+            rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
+            rx_stat_i       : in rx_status_array(g_NUM_LANES-1 downto 0);
+            active_lanes    : in std_logic_vector(g_NUM_LANES-1 downto 0);
+            rx_read         : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
             -- Output
-            rx_data_o   : out rx_data_array(g_NUM_LANES-1 downto 0);
-            rx_header_o : out rx_header_array(g_NUM_LANES-1 downto 0);
-            rx_valid_o  : out std_logic_vector(g_NUM_LANES-1 downto 0);
-            rx_stat_o   : out rx_status_array(g_NUM_LANES-1 downto 0)       
+            rx_data_o       : out rx_data_array(g_NUM_LANES-1 downto 0);
+            rx_header_o     : out rx_header_array(g_NUM_LANES-1 downto 0);
+            rx_valid_o      : out std_logic_vector(g_NUM_LANES-1 downto 0);
+            rx_stat_o       : out rx_status_array(g_NUM_LANES-1 downto 0)       
         );
     end component;
     
@@ -129,28 +130,29 @@ architecture behavioral of aurora_rx_channel is
     signal rx_data_s : std_logic_vector(63 downto 0);
     signal rx_valid_s : std_logic;
 
+    --Aurora Lane signals
     signal rx_data : rx_data_array(g_NUM_LANES-1 downto 0);
     signal rx_header : rx_header_array(g_NUM_LANES-1 downto 0);
     signal rx_status : rx_status_array(g_NUM_LANES-1 downto 0);    
     signal rx_polarity : std_logic_vector(g_NUM_LANES-1 downto 0);
     signal rx_data_valid : std_logic_vector(g_NUM_LANES-1 downto 0);
 
+    --Channel Bonding signals
     signal rx_cb_din        : rx_data_array(g_NUM_LANES-1 downto 0);
     signal rx_cb_header     : rx_header_array(g_NUM_LANES-1 downto 0);
     signal rx_cb_status     : rx_status_array(g_NUM_LANES-1 downto 0);
     signal rx_cb_dvalid     : std_logic_vector(g_NUM_LANES-1 downto 0);
+    signal rx_cb_read       : std_logic_vector(g_NUM_LANES-1 downto 0);
     signal rx_cb_dout       : rx_data_array(g_NUM_LANES-1 downto 0);
-    signal rx_cb_header_o   : rx_header_array(g_NUM_LANES-1 downto 0);
-    signal rx_cb_status_o   : rx_status_array(g_NUM_LANES-1 downto 0);
-    signal rx_cb_dvalid_o   : std_logic_vector(g_NUM_LANES-1 downto 0);
+    signal rx_cb_empty      : std_logic_vector(g_NUM_LANES-1 downto 0);
     
-    signal rx_fifo_dout :rx_data_array(g_NUM_LANES-1 downto 0);
-    signal rx_fifo_din : rx_data_array(g_NUM_LANES-1 downto 0);
-    signal rx_fifo_full : std_logic_vector(g_NUM_LANES-1 downto 0);
-    signal rx_fifo_empty : std_logic_vector(g_NUM_LANES-1 downto 0);
-    signal rx_fifo_rden : std_logic_vector(g_NUM_LANES-1 downto 0);
-    signal rx_fifo_rden_t : std_logic_vector(g_NUM_LANES-1 downto 0);
-    signal rx_fifo_wren : std_logic_vector(g_NUM_LANES-1 downto 0);
+    -- signal rx_fifo_dout :rx_data_array(g_NUM_LANES-1 downto 0);
+    -- signal rx_fifo_din : rx_data_array(g_NUM_LANES-1 downto 0);
+    -- signal rx_fifo_full : std_logic_vector(g_NUM_LANES-1 downto 0);
+    -- signal rx_fifo_empty : std_logic_vector(g_NUM_LANES-1 downto 0);
+    -- signal rx_fifo_rden : std_logic_vector(g_NUM_LANES-1 downto 0);
+    -- signal rx_fifo_rden_t : std_logic_vector(g_NUM_LANES-1 downto 0);
+    -- signal rx_fifo_wren : std_logic_vector(g_NUM_LANES-1 downto 0);
     
     signal channel : integer range 0 to g_NUM_LANES-1;
     
@@ -267,7 +269,7 @@ begin
         --);        
     end generate lane_loop;
 
-    u_channel_bond : channel_bonding
+    cmp_channel_bond : channel_bonding
         generic map (g_NUM_LANES => g_NUM_LANES)
         port map (
             clk             => clk_rx_i,
@@ -276,10 +278,9 @@ begin
             rx_valid_i      => rx_cb_dvalid,
             rx_stat_i       => rx_cb_status,
             active_lanes    => "1111",
+            rx_read         => rx_cb_read,
             rx_data_o       => rx_cb_dout,
-            rx_header_o     => rx_cb_header_o,
-            rx_valid_o      => rx_cb_dvalid_o,
-            rx_stat_o       => rx_cb_status_o
+            rx_empty_o      => rx_cb_empty
     );
     
 --    aurora_channel_debug : ila_rx_dma_wb

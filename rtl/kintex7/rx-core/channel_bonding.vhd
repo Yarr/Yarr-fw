@@ -28,28 +28,15 @@ entity channel_bonding is
         rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
         rx_stat_i       : in rx_status_array(g_NUM_LANES-1 downto 0);
         active_lanes    : in std_logic_vector(g_NUM_LANES-1 downto 0);
+        rx_read         : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
         -- Output
         rx_data_o       : out rx_data_array(g_NUM_LANES-1 downto 0);
-        rx_header_o     : out rx_header_array(g_NUM_LANES-1 downto 0);
-        rx_valid_o      : out std_logic_vector(g_NUM_LANES-1 downto 0);
-        rx_stat_o       : out rx_status_array(g_NUM_LANES-1 downto 0)       
+        rx_empty_o      : out std_logic_vector(g_NUM_LANES-1 downto 0)      
     );
 end channel_bonding;
 
 architecture behavioral of channel_bonding is
-
-    component shift_reg is
-        generic (
-            sr_depth : integer := 2;
-            sr_width : integer := 64
-        );
-        port (
-            clk     : in std_logic;
-            din     : in std_logic_vector(sr_width-1 downto 0);
-            dout    : out std_logic_vector(sr_width-1 downto 0)
-        );
-    end component; 
 
     constant c_ALL_ZEROS : std_logic_vector(g_NUM_LANES-1 downto 0) := (others => '0');
 
@@ -57,7 +44,12 @@ architecture behavioral of channel_bonding is
     signal is_cb_frame_prev : std_logic_vector(g_NUM_LANES-1 downto 0);
     signal lane_early : std_logic_vector(g_NUM_LANES-1 downto 0);
 
-    signal data_sr : rx_data_array(g_NUM_LANES-1 downto 0);
+    -- Used by rx_channel to decide if data can be read out
+    signal empty : std_logic_vector(g_NUM_LANES-1 downto 0);
+
+    signal data_d : rx_data_array(g_NUM_LANES-1 downto 0);
+    signal header_d : rx_header_array(g_NUM_LANES-1 downto 0);
+    signal valid_d : std_logic_vector(g_NUM_LANES-1 downto 0);
     signal rx_data_s : rx_data_array(g_NUM_LANES-1 downto 0);
     
 begin
@@ -66,12 +58,12 @@ begin
 
     --Putting data inputs into shift regs
     reg_gen : for I in 0 to g_NUM_LANES-1 generate
-        u_shift_reg : shift_reg
+        cmp_data_shift_reg : shift_reg
         generic map(sr_depth => 2, sr_width => 64)
         port map(
             clk => clk,
             din => rx_data_i(I),
-            dout => data_sr(I)
+            dout => data_d(I)
         );
     end generate reg_gen;
 
@@ -105,11 +97,11 @@ begin
 
     --If a lane is early, output from its shift reg. Else, lane itself is outputted
     --Inactive lanes are directly outputted
-    pr_output : process(rx_data_i, data_sr)
+    pr_output : process(rx_data_i, data_d)
     begin
         for I in 0 to g_NUM_LANES-1 loop
             if (lane_early(I) = '1' and active_lanes(I) = '1') then
-                rx_data_s(I) <= data_sr(I);
+                rx_data_s(I) <= data_d(I);
             else
                 rx_data_s(I) <= rx_data_i(I);
             end if;
