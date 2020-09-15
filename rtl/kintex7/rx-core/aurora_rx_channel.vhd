@@ -89,19 +89,19 @@ architecture behavioral of aurora_rx_channel is
         );
     end component rr_arbiter;
     
-    COMPONENT rx_lane_fifo
-        PORT (
-            rst : IN STD_LOGIC;
-            wr_clk : IN STD_LOGIC;
-            rd_clk : IN STD_LOGIC;
-            din : IN STD_LOGIC_VECTOR(63 DOWNTO 0);
-            wr_en : IN STD_LOGIC;
-            rd_en : IN STD_LOGIC;
-            dout : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
-            full : OUT STD_LOGIC;
-            empty : OUT STD_LOGIC
-        );
-    END COMPONENT;
+    -- COMPONENT rx_lane_fifo
+    --     PORT (
+    --         rst : IN STD_LOGIC;
+    --         wr_clk : IN STD_LOGIC;
+    --         rd_clk : IN STD_LOGIC;
+    --         din : IN STD_LOGIC_VECTOR(63 DOWNTO 0);
+    --         wr_en : IN STD_LOGIC;
+    --         rd_en : IN STD_LOGIC;
+    --         dout : OUT STD_LOGIC_VECTOR(63 DOWNTO 0);
+    --         full : OUT STD_LOGIC;
+    --         empty : OUT STD_LOGIC
+    --     );
+    -- END COMPONENT;
 
     component channel_bonding is
         generic (
@@ -114,14 +114,11 @@ architecture behavioral of aurora_rx_channel is
             rx_header_i     : in rx_header_array(g_NUM_LANES-1 downto 0);
             rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
             rx_stat_i       : in rx_status_array(g_NUM_LANES-1 downto 0);
-            active_lanes    : in std_logic_vector(g_NUM_LANES-1 downto 0);
-            rx_read         : in std_logic_vector(g_NUM_LANES-1 downto 0);
+            active_lanes_i  : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
             -- Output
-            rx_data_o       : out rx_data_array(g_NUM_LANES-1 downto 0);
-            rx_header_o     : out rx_header_array(g_NUM_LANES-1 downto 0);
-            rx_valid_o      : out std_logic_vector(g_NUM_LANES-1 downto 0);
-            rx_stat_o       : out rx_status_array(g_NUM_LANES-1 downto 0)       
+            rx_data_o       : out rx_data_array(g_NUM_LANES-1 downto 0);  
+            rx_empty_o      : out std_logic_vector(g_NUM_LANES-1 downto 0)   
         );
     end component;
     
@@ -142,9 +139,10 @@ architecture behavioral of aurora_rx_channel is
     signal rx_cb_header     : rx_header_array(g_NUM_LANES-1 downto 0);
     signal rx_cb_status     : rx_status_array(g_NUM_LANES-1 downto 0);
     signal rx_cb_dvalid     : std_logic_vector(g_NUM_LANES-1 downto 0);
-    signal rx_cb_read       : std_logic_vector(g_NUM_LANES-1 downto 0);
     signal rx_cb_dout       : rx_data_array(g_NUM_LANES-1 downto 0);
     signal rx_cb_empty      : std_logic_vector(g_NUM_LANES-1 downto 0);
+    signal rx_rden          : std_logic_vector(g_NUM_LANES-1 downto 0);
+    signal rx_rden_t        : std_logic_vector(g_NUM_LANES-1 downto 0);
     
     -- signal rx_fifo_dout :rx_data_array(g_NUM_LANES-1 downto 0);
     -- signal rx_fifo_din : rx_data_array(g_NUM_LANES-1 downto 0);
@@ -178,36 +176,33 @@ begin
 
     rx_data_o <= rx_data_s;
     rx_valid_o <= rx_valid_s;
-    
-    --rx_fifo_rden <= (others => '1');
-    --rx_fifo_empty <= (others => '0');
 	
 	-- Arbiter
 	cmp_rr_arbiter : rr_arbiter port map (
 		clk_i => clk_rx_i,
 		rst_i => not rst_n_i,
-		req_i => not rx_fifo_empty,
-		gnt_o => rx_fifo_rden_t
+		req_i => not rx_cb_empty,
+		gnt_o => rx_rden_t
 	);
 	
 	reg_proc : process(clk_rx_i, rst_n_i)
     begin
         if (rst_n_i = '0') then
-            rx_fifo_rden <= (others => '0');
+            rx_rden <= (others => '0');
             rx_data_s <= (others => '0');
             rx_valid_s <= '0';
             channel <= 0;            
             rx_polarity <= (others => '0');
         elsif rising_edge(clk_rx_i) then
-            rx_fifo_rden <= rx_fifo_rden_t;
+            rx_rden <= rx_rden_t;
             rx_polarity <= rx_polarity_i;
-            channel <= log2_ceil(to_integer(unsigned(rx_fifo_rden_t)));
-            if (unsigned(rx_fifo_rden) = 0 or ((rx_fifo_rden and rx_fifo_empty) = rx_fifo_rden)) then
+            channel <= log2_ceil(to_integer(unsigned(rx_rden_t)));
+            if (unsigned(rx_rden) = 0 or ((rx_rden and rx_cb_empty) = rx_rden)) then
                 rx_valid_s <= '0';
                 rx_data_s <= x"DEADBEEFDEADBEEF";
             else
                 rx_valid_s <= '1';
-                rx_data_s <= rx_fifo_dout(channel);
+                rx_data_s <= rx_cb_dout(channel);
             end if;
         end if;
     end process reg_proc;
@@ -277,8 +272,7 @@ begin
             rx_header_i     => rx_cb_header,
             rx_valid_i      => rx_cb_dvalid,
             rx_stat_i       => rx_cb_status,
-            active_lanes    => "1111",
-            rx_read         => rx_cb_read,
+            active_lanes_i  => "1111",
             rx_data_o       => rx_cb_dout,
             rx_empty_o      => rx_cb_empty
     );
