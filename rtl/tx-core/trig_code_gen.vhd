@@ -8,6 +8,7 @@
 
 library IEEE;
 use ieee.std_logic_1164.all;
+use ieee.std_logic_misc.all;
 use ieee.numeric_std.all;
 
 entity trig_code_gen is 
@@ -25,6 +26,9 @@ end trig_code_gen;
 architecture behavioral of trig_code_gen is
 
     component trig_shift_reg
+    generic (
+        g_DATA_WIDTH : integer
+    ); 
     port (
         clk_i   : in std_logic;   --160 MHz
         rst_n_i : in std_logic;
@@ -33,7 +37,7 @@ architecture behavioral of trig_code_gen is
         data_i  : in std_logic;
         rd_en_i : in std_logic;   --For reading when register fills
 
-        data_o  : out std_logic_vector(7 downto 0) 
+        data_o  : out std_logic_vector(g_DATA_WIDTH-1 downto 0) 
     );
     end component;
 
@@ -47,14 +51,14 @@ architecture behavioral of trig_code_gen is
     signal counter4 : unsigned(1 downto 0);
     signal counter32 : unsigned(4 downto 0);
 
-    signal pulse_prev : std_logic;
-    signal pulse_edge : std_logic;
+    signal reg8_shift : std_logic;
+    signal reg4_rd_en : std_logic;   --for reading 4b shift reg
+    signal reg8_rd_en : std_logic;   --for reading 8b shift reg
 
-    signal shift : std_logic;
-    signal sr_rd_en : std_logic;
     signal trig_bit : std_logic;  
 
-    signal sr_word_o : std_logic_vector(7 downto 0);
+    signal reg4_word_o : std_logic_vector(3 downto 0);
+    signal reg8_word_o : std_logic_vector(7 downto 0);
 
 begin
 
@@ -74,55 +78,55 @@ begin
     pr_enable_sr : process(counter4, counter32)
     begin
         if (counter4 = "11") then
-            shift <= '1';
+            reg8_shift <= '1';
         else
-            shift <= '0';
+            reg8_shift <= '0';
+        end if;
+
+        if (counter4 = "00") then
+            reg4_rd_en <= '1';
+        else
+            reg4_rd_en <= '0';
         end if;
         
         if (counter32 = "00000") then
-            sr_rd_en <= '1';
+            reg8_rd_en <= '1';
         else
-            sr_rd_en <= '0';
+            reg8_rd_en <= '0';
         end if;
     end process;
 
-    pr_pulse : process(clk_i)
-    begin
-        if rising_edge(clk_i) then
-            pulse_prev <= pulse_i;
-        end if;
-    end process;
+    trig_bit <= or_reduce(reg4_word_o);  --computes an OR of all bits in vector
 
-    --Detecting rising edge of pulse
-    pulse_edge <= pulse_i and (not pulse_prev);
-
-    pr_trig_bit : process(pulse_edge, trig_bit)
-    begin
-        --if rising_edge(clk_i) then
-            if (pulse_edge = '1') then
-                trig_bit <= '1';
-            elsif (counter4 = "00") then
-                trig_bit <= '0';
-            end if;
-        --end if;
-    end process;
-
-    cmp_sr : trig_shift_reg PORT MAP(
+    cmp_sr4 : trig_shift_reg 
+    GENERIC MAP (g_DATA_WIDTH => 4)
+    PORT MAP(
         clk_i   => clk_i,
         rst_n_i => rst_n_i,
-        shift_i => shift,
+        shift_i => '1',
+        data_i  => pulse_i,
+        rd_en_i => reg4_rd_en,
+        data_o  => reg4_word_o
+    );
+
+    cmp_sr8 : trig_shift_reg 
+    GENERIC MAP (g_DATA_WIDTH => 8)
+    PORT MAP(
+        clk_i   => clk_i,
+        rst_n_i => rst_n_i,
+        shift_i => reg8_shift,
         data_i  => trig_bit,
-        rd_en_i => sr_rd_en,
-        data_o  => sr_word_o
+        rd_en_i => reg8_rd_en,
+        data_o  => reg8_word_o
     );
 
     cmp_code1 : encoder PORT MAP(
-        pattern_i => sr_word_o(7 downto 4),
+        pattern_i => reg8_word_o(7 downto 4),
         code_o => code_o(15 downto 8)
     );
 
     cmp_code2 : encoder PORT MAP(
-        pattern_i => sr_word_o(3 downto 0),
+        pattern_i => reg8_word_o(3 downto 0),
         code_o => code_o(7 downto 0)
     );
 

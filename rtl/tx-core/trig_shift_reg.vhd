@@ -11,6 +11,9 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity trig_shift_reg is 
+    generic (
+        g_DATA_WIDTH : integer := 4
+    );
     port (
         clk_i   : in std_logic;   --160 MHz
         rst_n_i : in std_logic;
@@ -19,13 +22,13 @@ entity trig_shift_reg is
         data_i  : in std_logic;
         rd_en_i : in std_logic;   --For reading when register fills
 
-        data_o  : out std_logic_vector(7 downto 0) 
+        data_o  : out std_logic_vector(g_DATA_WIDTH-1 downto 0) 
     );
 end trig_shift_reg;
 
 architecture behavioral of trig_shift_reg is
 
-    signal sreg : std_logic_vector(7 downto 0);
+    signal sreg : std_logic_vector(g_DATA_WIDTH-1 downto 0);
 begin
 
     pr_shift : process(clk_i, rst_n_i, shift_i)
@@ -34,7 +37,7 @@ begin
             sreg <= (others => '0');
         elsif rising_edge(clk_i) then
             if(shift_i = '1') then 
-                sreg(7 downto 0) <= sreg(6 downto 0) & data_i;
+                sreg(g_DATA_WIDTH-1 downto 0) <= sreg(g_DATA_WIDTH-2 downto 0) & data_i;
             end if;
         end if;
     end process;
@@ -45,7 +48,7 @@ begin
             data_o <= (others => '0');
         elsif rising_edge(clk_i) then
             if (rd_en_i = '1') then
-                data_o <= sreg(7 downto 0);
+                data_o <= sreg(g_DATA_WIDTH-1 downto 0);
             end if;
         end if;
     end process;
