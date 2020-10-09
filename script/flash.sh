@@ -90,7 +90,7 @@ then
 
     # Download
     mkdir -p Downloads
-    wget -P ./Downloads ${URL}${DIR}/${FILE}
+    wget --backup=1 -P ./Downloads ${URL}${DIR}/${FILE}
 
     BITFILE=Downloads/${FILE}
 else
