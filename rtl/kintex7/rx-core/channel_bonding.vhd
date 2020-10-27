@@ -27,7 +27,8 @@ entity channel_bonding is
         rx_header_i     : in rx_header_array(g_NUM_LANES-1 downto 0);
         rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
         rx_stat_i       : in rx_status_array(g_NUM_LANES-1 downto 0);
-        active_lanes_i    : in std_logic_vector(g_NUM_LANES-1 downto 0);
+        active_lanes_i  : in std_logic_vector(g_NUM_LANES-1 downto 0);
+        rx_read_i       : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
         -- Output
         rx_data_o       : out rx_data_array(g_NUM_LANES-1 downto 0);
@@ -45,7 +46,7 @@ architecture behavioral of channel_bonding is
     signal lane_early : std_logic_vector(g_NUM_LANES-1 downto 0);
 
     -- Used by rx_channel to decide if data can be read out
-    signal read_en : std_logic_vector(g_NUM_LANES-1 downto 0);
+    signal valid : std_logic_vector(g_NUM_LANES-1 downto 0);
     signal empty : std_logic_vector(g_NUM_LANES-1 downto 0);
 
     signal data_d : rx_data_array(g_NUM_LANES-1 downto 0);
@@ -117,10 +118,10 @@ begin
     end process;
 
     --Need to decide whether data is valid to be read out
-    pr_read_en : process(rx_valid_s, rx_header_s)
+    pr_valid : process(rx_valid_s, rx_header_s)
     begin
         for I in 0 to g_NUM_LANES-1 loop
-            read_en(I) <=   rx_valid_s(I) when (rx_header_s(I) = "01") else
+            valid(I) <=   rx_valid_s(I) when (rx_header_s(I) = "01") else
                             rx_valid_s(I) when ((rx_data_s(I)(63 downto 56) = c_AURORA_SEP) and (rx_data_s(I)(55 downto 48) = x"04")) else
                             rx_valid_s(I) when ((rx_header_s(I) = "10") and (rx_data_s(I)(63 downto 56) = x"55")) else
                             rx_valid_s(I) when ((rx_header_s(I) = "10") and (rx_data_s(I)(63 downto 56) = x"99")) else
@@ -130,12 +131,13 @@ begin
     end process;
 
     --Set empty high if output data is in unkown state, or data is not good to be read
-    pr_set_empty : process(read_en, rx_data_s)
+    --Set empty low if it was high and valid goes high
+    pr_set_empty : process(rx_read_i, valid, rx_data_s)
     begin
         for I in 0 to g_NUM_LANES-1 loop
-            if ((read_en(I) = '0') or (rx_data_s(I) = c_ALL_UNKNOWN)) then
+            if ((rx_read_i(I) = '1') or (valid(I) = '0') or (rx_data_s(I) = c_ALL_UNKNOWN)) then
                 rx_empty_o(I) <= '1';
-            else
+            else if ((valid(I) = '1') and (rx_empty_o(I) = '1')) then
                 rx_empty_o(I) <= '0'; 
             end if;
         end loop;

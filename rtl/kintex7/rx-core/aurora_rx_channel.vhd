@@ -273,6 +273,7 @@ begin
             rx_valid_i      => rx_cb_dvalid,
             rx_stat_i       => rx_cb_status,
             active_lanes_i  => "1111",
+            rx_read_i       => rx_rden_t,
             rx_data_o       => rx_cb_dout,
             rx_empty_o      => rx_cb_empty
     );
