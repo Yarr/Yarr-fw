@@ -26,19 +26,18 @@ architecture Behavioral of channel_bonding_tb is
         g_NUM_LANES : integer range 1 to 4 := 1
     );
     port (
-        clk         : in std_logic;
+        clk             : in std_logic;
         -- Input
-        rx_data_i   : in rx_data_array(g_NUM_LANES-1 downto 0);
-        rx_header_i : in rx_header_array(g_NUM_LANES-1 downto 0);
-        rx_valid_i  : in std_logic_vector(g_NUM_LANES-1 downto 0);
-        rx_stat_i   : in rx_status_array(g_NUM_LANES-1 downto 0);
-        active_lanes : in std_logic_vector(g_NUM_LANES-1 downto 0);
+        rx_data_i       : in rx_data_array(g_NUM_LANES-1 downto 0);
+        rx_header_i     : in rx_header_array(g_NUM_LANES-1 downto 0);
+        rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
+        rx_stat_i       : in rx_status_array(g_NUM_LANES-1 downto 0);
+        active_lanes_i  : in std_logic_vector(g_NUM_LANES-1 downto 0);
+        rx_read_i       : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
         -- Output
-        rx_data_o   : out rx_data_array(g_NUM_LANES-1 downto 0);
-        rx_header_o : out rx_header_array(g_NUM_LANES-1 downto 0);
-        rx_valid_o  : out std_logic_vector(g_NUM_LANES-1 downto 0);
-        rx_stat_o   : out rx_status_array(g_NUM_LANES-1 downto 0)       
+        rx_data_o       : out rx_data_array(g_NUM_LANES-1 downto 0);
+        rx_empty_o      : out std_logic_vector(g_NUM_LANES-1 downto 0)      
     );
     end component channel_bonding;
     
@@ -56,7 +55,8 @@ architecture Behavioral of channel_bonding_tb is
     signal rx_cb_dout : rx_data_array(g_NUM_LANES-1 downto 0);
     signal rx_cb_header_o : rx_header_array(g_NUM_LANES-1 downto 0);
     signal rx_cb_dvalid_o : std_logic_vector(g_NUM_LANES-1 downto 0);
-    signal rx_cb_status_o : rx_status_array(g_NUM_LANES-1 downto 0);
+    signal rx_empty_o : std_logic_vector(g_NUM_LANES-1 downto 0);
+    signal rx_read_i : std_logic_vector(g_NUM_LANES-1 downto 0);
     signal counter : unsigned(1 downto 0) := "00";
     
 begin
@@ -77,11 +77,10 @@ begin
             rx_header_i     => rx_cb_header,
             rx_valid_i      => rx_cb_dvalid,
             rx_stat_i       => rx_cb_status,
-            active_lanes    => (others => '1'),
+            active_lanes_i    => (others => '1'),
+            rx_read_i       => rx_read_i,
             rx_data_o       => rx_cb_dout,
-            rx_header_o     => rx_cb_header_o,
-            rx_valid_o      => rx_cb_dvalid_o,
-            rx_stat_o       => rx_cb_status_o
+            rx_empty_o      => rx_empty_o
     );
     
     pr_incr_cnt : process(clk_rx_i)
@@ -99,16 +98,19 @@ begin
                 rx_cb_header(0) <= "10";
                 rx_cb_din(1) <= (others => '0');
                 rx_cb_header(1) <= "01";
+                rx_read_i <= "00";
             elsif (counter = "01") then
                 rx_cb_din(0) <= (others => '0');
                 rx_cb_header(0) <= "01";
                 rx_cb_din(1) <= c_CB_FRAME;
                 rx_cb_header(1) <= "10";
+                rx_read_i <= "11";
             else
                 rx_cb_din(0) <= (others => '1');
                 rx_cb_header(0) <= "01";
                 rx_cb_din(1) <= (others => '1');
                 rx_cb_header(0) <= "01";
+                rx_read_i <= "00";
             end if;
         end if;
     end process;

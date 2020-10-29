@@ -136,12 +136,16 @@ begin
     begin
         for I in 0 to g_NUM_LANES-1 loop
             if ((rx_read_i(I) = '1') or (valid(I) = '0') or (rx_data_s(I) = c_ALL_UNKNOWN)) then
-                rx_empty_o(I) <= '1';
-            else if ((valid(I) = '1') and (rx_empty_o(I) = '1')) then
-                rx_empty_o(I) <= '0'; 
+                empty(I) <= '1';
+            elsif ((valid(I) = '1') and (empty(I) = '1')) then
+                empty(I) <= '0'; 
+            else
+                empty(I) <= '0';
             end if;
         end loop;
     end process;
+
+    rx_empty_o <= empty;
   
     
 end behavioral;

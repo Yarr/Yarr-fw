@@ -115,6 +115,7 @@ architecture behavioral of aurora_rx_channel is
             rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
             rx_stat_i       : in rx_status_array(g_NUM_LANES-1 downto 0);
             active_lanes_i  : in std_logic_vector(g_NUM_LANES-1 downto 0);
+            rx_read_i       : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
             -- Output
             rx_data_o       : out rx_data_array(g_NUM_LANES-1 downto 0);  
