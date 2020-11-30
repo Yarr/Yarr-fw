@@ -86,7 +86,7 @@ then
     echo "Directory: $DIR"
     echo "File: $FILE"
 
-    URL="http://yarr.web.cern.ch/yarr/firmware/latest/"
+    URL="http://yarr.web.cern.ch/firmware/latest/"
 
     # Download
     mkdir -p Downloads
