@@ -143,6 +143,18 @@ architecture behavioral of wb_tx_core is
 	);
 	end component;
 	
+	component trig_code_gen is 
+        port (
+            clk_i       : in std_logic;
+            rst_n_i     : in std_logic;
+    
+            --enable_i    : in std_logic;
+            pulse_i     : in std_logic;
+    
+            code_o      : out std_logic_vector(15 downto 0)  --two 8-bit encodings
+        );
+    end component;
+	
 	-- Signals
 	signal tx_data_cmd : std_logic_vector(g_NUM_TX-1 downto 0);
 	signal tx_data_trig : std_logic;
@@ -502,6 +514,13 @@ begin
 		trig_en_i => trig_en_hs,
 		trig_abort_i => trig_abort_hs,
 		trig_done_o => trig_done
+	);
+	
+	cmp_trig_code_gen : trig_code_gen PORT MAP (
+	    clk_i => tx_clk_i,
+	    rst_n_i => rst_n_i,
+	    pulse_i => tx_trig_pulse,
+	    code_o => tx_data_cmd
 	);
     
     -- Create 1 tick per second for counter

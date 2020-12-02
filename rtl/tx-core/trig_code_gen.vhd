@@ -16,7 +16,7 @@ entity trig_code_gen is
         clk_i       : in std_logic;
         rst_n_i     : in std_logic;
 
-        enable_i    : in std_logic;
+        --enable_i    : in std_logic;
         pulse_i     : in std_logic;
 
         code_o      : out std_logic_vector(15 downto 0)  --two 8-bit encodings
@@ -49,17 +49,16 @@ architecture behavioral of trig_code_gen is
     end component;
 
     signal counter4 : unsigned(1 downto 0);
-    signal counter32 : unsigned(4 downto 0);
+    signal counter8 : unsigned(2 downto 0);
 
     signal reg8_shift : std_logic;
-    signal reg4_rd_en : std_logic;   --for reading 4b shift reg
     signal reg8_rd_en : std_logic;   --for reading 8b shift reg
-
+    
+    signal trig_vec : std_logic_vector(3 downto 0);
+    signal trig_word : std_logic_vector(3 downto 0);
     signal trig_bit : std_logic;  
 
-    signal reg4_word_o : std_logic_vector(3 downto 0);
     signal reg8_word_o : std_logic_vector(7 downto 0);
-
 begin
 
     --Increment counters for bunch crossing (4) and reg filling (32)
@@ -67,15 +66,26 @@ begin
     begin
         if (rst_n_i = '0') then
             counter4 <= (others => '0');
-            counter32 <= (others => '0');
+            counter8 <= (others => '0');
         elsif rising_edge(clk_i) then
             counter4 <= counter4 + 1;
-            counter32 <= counter32 + 1;
+            if (counter4 = "11") then
+                counter8 <= counter8 + 1;
+            end if;
+        end if;
+    end process;
+    
+    shift_vect : process (clk_i)
+    begin
+        if (rst_n_i = '0') then
+            trig_vec <= (others => '0');
+        elsif rising_edge(clk_i) then
+            trig_vec(3 downto 0) <= trig_vec(2 downto 0) & pulse_i;
         end if;
     end process;
     
     --Shift trig_bit into reg at the end of each bunch crossing
-    pr_enable_sr : process(counter4, counter32)
+    pr_enable_sr : process(counter4, counter8)
     begin
         if (counter4 = "11") then
             reg8_shift <= '1';
@@ -84,30 +94,19 @@ begin
         end if;
 
         if (counter4 = "00") then
-            reg4_rd_en <= '1';
+            trig_word <= trig_vec;
         else
-            reg4_rd_en <= '0';
+            trig_word <= trig_word;
         end if;
         
-        if (counter32 = "00000") then
+        if (counter8 = "000") then
             reg8_rd_en <= '1';
         else
             reg8_rd_en <= '0';
         end if;
     end process;
 
-    trig_bit <= or_reduce(reg4_word_o);  --computes an OR of all bits in vector
-
-    cmp_sr4 : trig_shift_reg 
-    GENERIC MAP (g_DATA_WIDTH => 4)
-    PORT MAP(
-        clk_i   => clk_i,
-        rst_n_i => rst_n_i,
-        shift_i => '1',
-        data_i  => pulse_i,
-        rd_en_i => reg4_rd_en,
-        data_o  => reg4_word_o
-    );
+    trig_bit <= or_reduce(trig_word);  --computes an OR of all bits in vector
 
     cmp_sr8 : trig_shift_reg 
     GENERIC MAP (g_DATA_WIDTH => 8)
