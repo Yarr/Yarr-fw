@@ -924,9 +924,9 @@ wb_dev_gen : if wb_dev_c = '1' generate
                 tx_data_o => fe_cmd_o,
                 trig_pulse_o => trig_pulse,
                 -- Trig
-                ext_trig_i => int_trig_t,
+                ext_trig_i => int_trig_t
                 
-                trig_code_o => open
+                --trig_code_o => open
             );
      end generate fei4_type_tx;
      rd53_type_tx: if c_FE_TYPE = "RD53" generate 
@@ -949,9 +949,9 @@ wb_dev_gen : if wb_dev_c = '1' generate
                 tx_data_o => fe_cmd_o,
                 trig_pulse_o => trig_pulse,
                 -- Trig
-                ext_trig_i => int_trig_t,
+                ext_trig_i => int_trig_t
                 
-                trig_code_o => open
+                --trig_code_o => open
             );
      end generate rd53_type_tx;
         

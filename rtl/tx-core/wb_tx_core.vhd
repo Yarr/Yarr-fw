@@ -59,10 +59,10 @@ entity wb_tx_core is
 		trig_pulse_o : out std_logic;
 		
 		-- Sync
-		ext_trig_i : in std_logic;
+		ext_trig_i : in std_logic
 		
 		-- Trig encoding
-		trig_code_o : out std_logic_vector(15 downto 0)
+		--trig_code_o : out std_logic_vector(15 downto 0)
 	);
 end wb_tx_core;
 
@@ -523,7 +523,7 @@ begin
 	    clk_i => tx_clk_i,
 	    rst_n_i => rst_n_i,
 	    pulse_i => tx_trig_pulse,
-	    code_o => trig_code_o
+	    code_o => open
 	);
     
     -- Create 1 tick per second for counter
