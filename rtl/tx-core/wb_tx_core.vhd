@@ -67,27 +67,31 @@ entity wb_tx_core is
 end wb_tx_core;
 
 architecture behavioral of wb_tx_core is
-	component tx_channel
-		port (
-			-- Sys connect
-			wb_clk_i	: in  std_logic;
-			rst_n_i		: in  std_logic;
-			
-			-- Data In
-			wb_dat_i	: in std_logic_vector(31 downto 0);
-			wb_wr_en_i	: in std_logic;
-			
-			-- TX
-			tx_clk_i		: in  std_logic;
-			tx_data_o		: out std_logic;
-			tx_enable_i		: in std_logic;
-                    
+    component tx_channel is
+        port (
+            -- Sys connect
+            wb_clk_i	: in  std_logic;
+            rst_n_i		: in  std_logic;
+            
+            -- Data In
+            wb_dat_i	: in std_logic_vector(31 downto 0);
+            wb_wr_en_i	: in std_logic;
+            
+            -- TX
+            tx_clk_i		: in  std_logic;
+            tx_data_o		: out std_logic;
+            tx_enable_i		: in std_logic;
+            
+            -- Trig Code
+            trig_code_i : in std_logic_vector (31 downto 0);
+            trig_code_ready_i : in std_logic;
+            
             -- Word Looper
             loop_pulse_i    : in std_logic;
-            loop_mode_i     : in std_logic;
-            loop_word_i     : in std_logic_vector(1023 downto 0);
-            loop_word_bytes_i : in std_logic_vector(7 downto 0);
-
+            loop_mode_i     : in std_logic; -- (WB clk domain)
+            loop_word_i     : in std_logic_vector(1023 downto 0); -- (WB clk domain)
+            loop_word_bytes_i : in std_logic_vector(7 downto 0); -- (WB clk domain)
+                
             -- Pulse
             pulse_word_i       : in std_logic_vector(31 downto 0);
             pulse_interval_i   : in std_logic_vector(15 downto 0);
@@ -98,14 +102,14 @@ architecture behavioral of wb_tx_core is
             
             -- Idle
             idle_word_i       : in std_logic_vector(31 downto 0);
-			
-			-- Status
-			tx_underrun_o	: out std_logic;
-			tx_overrun_o	: out std_logic;
-			tx_almost_full_o : out std_logic;
-			tx_empty_o	: out std_logic
-		);
-	end component;
+            
+            -- Status
+            tx_underrun_o	: out std_logic;
+            tx_overrun_o	: out std_logic;
+            tx_almost_full_o : out std_logic;
+            tx_empty_o	: out std_logic
+        );
+    end component;
 	
 	component trigger_unit
 		port (
@@ -146,7 +150,7 @@ architecture behavioral of wb_tx_core is
 	);
 	end component;
 	
-	component trig_code_gen is 
+    component trig_code_gen is 
         port (
             clk_i       : in std_logic;
             rst_n_i     : in std_logic;
@@ -154,7 +158,8 @@ architecture behavioral of wb_tx_core is
             --enable_i    : in std_logic;
             pulse_i     : in std_logic;
     
-            code_o      : out std_logic_vector(15 downto 0)  --two 8-bit encodings
+            code_o      : out std_logic_vector(31 downto 0);  --four 8-bit encodings
+            code_ready  : out std_logic
         );
     end component;
 	
@@ -242,6 +247,9 @@ architecture behavioral of wb_tx_core is
 
     signal idle_word : std_logic_vector(31 downto 0);
     signal idle_words : word_array;
+    
+    signal trig_code : std_logic_vector(31 downto 0);
+    signal trig_code_ready : std_logic;
 begin
 
 	channel <= TO_INTEGER(unsigned(wb_adr_i(8 downto 4)));
@@ -452,6 +460,9 @@ begin
 			tx_clk_i => tx_clk_i,
 			tx_data_o => tx_data_cmd(I),
 			tx_enable_i => tx_enable_hs(I),
+			-- Trigger code
+			trig_code_i => trig_code,
+			trig_code_ready_i => trig_code_ready,
 			-- Looper
 			loop_pulse_i => tx_trig_pulse,
 			loop_mode_i => trig_en_hs,
@@ -523,7 +534,8 @@ begin
 	    clk_i => tx_clk_i,
 	    rst_n_i => rst_n_i,
 	    pulse_i => tx_trig_pulse,
-	    code_o => open
+	    code_o => trig_code,
+	    code_ready => trig_code_ready
 	);
     
     -- Create 1 tick per second for counter

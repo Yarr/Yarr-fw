@@ -42,10 +42,10 @@ architecture Behavioral of trig_code_gen_tb is
         clk_i       : in std_logic;
         rst_n_i     : in std_logic;
 
-        enable_i    : in std_logic;
+        --enable_i    : in std_logic;
         pulse_i     : in std_logic;
 
-        code_o      : out std_logic_vector(15 downto 0)  --two 8-bit encodings
+        code_o      : out std_logic_vector(31 downto 0)  --two 8-bit encodings
     );
     end component;
     
@@ -54,7 +54,7 @@ architecture Behavioral of trig_code_gen_tb is
     
     signal pulse : std_logic;
     signal rst_n : std_logic;
-    signal code : std_logic_vector(15 downto 0);
+    signal code : std_logic_vector(31 downto 0);
     signal counter : unsigned(5 downto 0) := "000000";
     
 begin
@@ -86,7 +86,7 @@ begin
     dut_code_gen : trig_code_gen PORT MAP (
         clk_i => clk_i, 
         rst_n_i => rst_n, 
-        enable_i => '1',
+        --enable_i => '1',
         pulse_i => pulse,
         code_o => code
     );

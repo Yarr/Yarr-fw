@@ -23,6 +23,7 @@ entity serial_port is
         rst_n_i     : in std_logic;
         -- Input
         enable_i    : in std_logic;
+        trig_code_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
         data_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
         idle_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
         sync_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
@@ -30,6 +31,7 @@ entity serial_port is
         pulse_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
         pulse_interval_i : in std_logic_vector(15 downto 0);
         
+        trig_code_ready_i: in std_logic;
         data_valid_i : in std_logic;
         -- Output
         data_o      : out std_logic;
@@ -71,11 +73,17 @@ begin
             -- Output register
             data_o <= sreg(g_PORT_WIDTH-1);
             -- Priority encoder
-            -- 1. Input via data_i port (fifo/looper) [only when enabled]
+            -- 1. Trigger code [only when enabled]
+            -- 2. Input via data_i port (fifo/looper) [only when enabled]
             -- 3. Autozero word [only when enabled]
             -- 2. Sync word
             -- 4. Idle
-            if (bit_count = g_PORT_WIDTH-1 and data_valid_i = '1' and enable_i = '1') then
+            if (bit_count = g_PORT_WIDTH-1 and trig_code_ready_i = '1' and enable_i = ''1) theb
+                sreg <= trig_code_i;
+                bit_count <= (others => '0');
+                sync_cnt <= sync_cnt + 1;
+                pulse_cnt <= pulse_cnt + 1; 
+            else if (bit_count = g_PORT_WIDTH-1 and data_valid_i = '1' and enable_i = '1') then
                 sreg <= data_i;
                 data_read_o <= '1';
                 bit_count <= (others => '0');
