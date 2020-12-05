@@ -78,12 +78,12 @@ begin
             -- 3. Autozero word [only when enabled]
             -- 2. Sync word
             -- 4. Idle
-            if (bit_count = g_PORT_WIDTH-1 and trig_code_ready_i = '1' and enable_i = ''1) theb
+            if (bit_count = g_PORT_WIDTH-1 and trig_code_ready_i = '1' and enable_i = '1') then
                 sreg <= trig_code_i;
                 bit_count <= (others => '0');
                 sync_cnt <= sync_cnt + 1;
                 pulse_cnt <= pulse_cnt + 1; 
-            else if (bit_count = g_PORT_WIDTH-1 and data_valid_i = '1' and enable_i = '1') then
+            elsif (bit_count = g_PORT_WIDTH-1 and data_valid_i = '1' and enable_i = '1') then
                 sreg <= data_i;
                 data_read_o <= '1';
                 bit_count <= (others => '0');
