@@ -105,7 +105,7 @@ begin
             code_ready <= '1';
         else
             reg16_rd_en <= '0';
-            code_ready <= '1';
+            code_ready <= '0';
         end if;
     end process;
 
