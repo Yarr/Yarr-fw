@@ -20,7 +20,7 @@ entity trig_code_gen is
         pulse_i     : in std_logic;
 
         code_o      : out std_logic_vector(31 downto 0);  --four 8-bit encodings
-        code_ready  : out std_logic
+        code_ready_o : out std_logic
     );
 end trig_code_gen;
 
