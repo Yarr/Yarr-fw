@@ -83,8 +83,8 @@ architecture behavioral of wb_tx_core is
             tx_enable_i		: in std_logic;
             
             -- Trig Code
-            trig_code_i : in std_logic_vector (31 downto 0);
-            trig_code_ready_i : in std_logic;
+            trig_code_i : in std_logic_vector (15 downto 0);
+            --trig_code_ready_i : in std_logic;
             
             -- Word Looper
             loop_pulse_i    : in std_logic;
@@ -158,8 +158,8 @@ architecture behavioral of wb_tx_core is
             --enable_i    : in std_logic;
             pulse_i     : in std_logic;
     
-            code_o      : out std_logic_vector(31 downto 0);  --four 8-bit encodings
-            code_ready_o  : out std_logic
+            code_o      : out std_logic_vector(15 downto 0)  --four 8-bit encodings
+            --code_ready_o  : out std_logic
         );
     end component;
 	
@@ -249,7 +249,7 @@ architecture behavioral of wb_tx_core is
     signal idle_words : word_array;
     
     signal trig_code : std_logic_vector(31 downto 0);
-    signal trig_code_ready : std_logic;
+    --signal trig_code_ready : std_logic;
 begin
 
 	channel <= TO_INTEGER(unsigned(wb_adr_i(8 downto 4)));
@@ -462,7 +462,7 @@ begin
 			tx_enable_i => tx_enable_hs(I),
 			-- Trigger code
 			trig_code_i => trig_code,
-			trig_code_ready_i => trig_code_ready,
+			--trig_code_ready_i => trig_code_ready,
 			-- Looper
 			loop_pulse_i => tx_trig_pulse,
 			loop_mode_i => trig_en_hs,
@@ -535,7 +535,7 @@ begin
 	    rst_n_i => rst_n_i,
 	    pulse_i => tx_trig_pulse,
 	    code_o => trig_code,
-	    code_ready_o => trig_code_ready
+	    --code_ready_o => trig_code_ready
 	);
     
     -- Create 1 tick per second for counter

@@ -19,3 +19,5 @@ par
 project
 synthesize
 yarr.sim
+Makefile
+ip-cores
