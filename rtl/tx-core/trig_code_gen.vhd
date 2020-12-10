@@ -26,23 +26,7 @@ end trig_code_gen;
 
 architecture behavioral of trig_code_gen is
 
-    component trig_shift_reg
-    generic (
-        g_DATA_WIDTH : integer
-    ); 
-    port (
-        clk_i   : in std_logic;   --160 MHz
-        rst_n_i : in std_logic;
-
-        shift_i : in std_logic;   --Only shift bits when this input high
-        data_i  : in std_logic;
-        rd_en_i : in std_logic;   --For reading when register fills
-
-        data_o  : out std_logic_vector(g_DATA_WIDTH-1 downto 0) 
-    );
-    end component;
-
-    component encoder
+    component trig_encoder
     port (
         pattern_i   : in std_logic_vector(3 downto 0);
         code_o      : out std_logic_vector(7 downto 0)  
@@ -111,12 +95,12 @@ begin
     end process;
     
 
-    cmp_code1 : encoder PORT MAP(
+    cmp_code1 : trig_encoder PORT MAP(
         pattern_i => command_word(7 downto 4),
         code_o => code_o(15 downto 8)
     );
 
-    cmp_code2 : encoder PORT MAP(
+    cmp_code2 : trig_encoder PORT MAP(
         pattern_i => command_word(3 downto 0),
         code_o => code_o(7 downto 0)
     );

@@ -158,7 +158,7 @@ architecture behavioral of wb_tx_core is
             --enable_i    : in std_logic;
             pulse_i     : in std_logic;
     
-            code_o      : out std_logic_vector(15 downto 0)  --four 8-bit encodings
+            code_o      : out std_logic_vector(15 downto 0)  --two 8-bit encodings
             --code_ready_o  : out std_logic
         );
     end component;
