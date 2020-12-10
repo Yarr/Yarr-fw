@@ -44,7 +44,7 @@ architecture behavioral of trig_code_gen is
 begin
 
     --Increment counters for bunch crossing (4) and reg filling (32)
-    pr_incr_cnt : process(clk_i)
+    pr_incr_cnt : process(clk_i, rst_n_i)
     begin
         if (rst_n_i = '0') then
             counter4 <= (others => '0');
@@ -57,7 +57,7 @@ begin
         end if;
     end process;
     
-    shift_vect : process (clk_i)
+    pr_trig_vec : process(clk_i, rst_n_i)
     begin
         if (rst_n_i = '0') then
             trig_vec <= (others => '0');
@@ -68,7 +68,7 @@ begin
 
     trig_bit <= or_reduce(trig_word);  --computes an OR of all bits in vector
     
-    shift_command : process (clk_i)
+    pr_command_vec : process(clk_i, rst_n_i)
     begin
         if (rst_n_i = '0') then
             command_vec <= (others => '0');
