@@ -61,8 +61,6 @@ entity wb_tx_core is
 		-- Sync
 		ext_trig_i : in std_logic
 		
-		-- Trig encoding
-		--trig_code_o : out std_logic_vector(15 downto 0)
 	);
 end wb_tx_core;
 
@@ -84,7 +82,6 @@ architecture behavioral of wb_tx_core is
             
             -- Trig Code
             trig_code_i : in std_logic_vector (15 downto 0);
-            --trig_code_ready_i : in std_logic;
             
             -- Word Looper
             loop_pulse_i    : in std_logic;
@@ -159,7 +156,6 @@ architecture behavioral of wb_tx_core is
             pulse_i     : in std_logic;
     
             code_o      : out std_logic_vector(15 downto 0)  --two 8-bit encodings
-            --code_ready_o  : out std_logic
         );
     end component;
 	
@@ -249,7 +245,6 @@ architecture behavioral of wb_tx_core is
     signal idle_words : word_array;
     
     signal trig_code : std_logic_vector(31 downto 0);
-    --signal trig_code_ready : std_logic;
 begin
 
 	channel <= TO_INTEGER(unsigned(wb_adr_i(8 downto 4)));
@@ -535,7 +530,6 @@ begin
 	    rst_n_i => rst_n_i,
 	    pulse_i => tx_trig_pulse,
 	    code_o => trig_code,
-	    --code_ready_o => trig_code_ready
 	);
     
     -- Create 1 tick per second for counter
