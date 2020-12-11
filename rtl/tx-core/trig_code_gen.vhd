@@ -11,15 +11,15 @@ use     ieee.std_logic_misc.all;
 use     ieee.numeric_std.all;
 
 entity trig_code_gen is 
-port (
-    clk_i       : in  std_logic;
-    rst_n_i     : in  std_logic;
+    port (
+        clk_i       : in  std_logic;
+        rst_n_i     : in  std_logic;
 
-  --enable_i    : in  std_logic;     -- For future use. Not yet specified.
-    pulse_i     : in  std_logic;
+        --enable_i    : in  std_logic;     -- For future use. Not yet specified.
+        pulse_i     : in  std_logic;
 
-    code_o      : out std_logic_vector(15 downto 0)  -- Two 8-bit encodings
-);
+        code_o      : out std_logic_vector(15 downto 0)  -- Two 8-bit encodings
+    );
 end trig_code_gen;
 
 ----------------------------------------------------------------------------
@@ -27,24 +27,24 @@ end trig_code_gen;
 ----------------------------------------------------------------------------
 architecture behavioral of trig_code_gen is         -- TODO : Should really be called 'rtl' since this is not behavioral code
 
--- Trigger encoding. Converts 4-bit pattern into an 8-bit code
-component trig_encoder
-port (
-    pattern_i   : in  std_logic_vector(3 downto 0);
-    code_o      : out std_logic_vector(7 downto 0)  
-);
-end component;
+    -- Trigger encoding. Converts 4-bit pattern into an 8-bit code
+    component trig_encoder
+    port (
+        pattern_i   : in  std_logic_vector(3 downto 0);
+        code_o      : out std_logic_vector(7 downto 0)  
+    );
+    end component;
 
 
-signal trig_cntr     : unsigned(1 downto 0);
-signal command_cntr  : unsigned(2 downto 0);
+    signal trig_cntr     : unsigned(1 downto 0);
+    signal command_cntr  : unsigned(2 downto 0);
 
-signal trig_sreg    : std_logic_vector(3 downto 0);
-signal trig_word    : std_logic_vector(3 downto 0);
-signal trig_bit     : std_logic;
+    signal trig_sreg    : std_logic_vector(3 downto 0);
+    signal trig_word    : std_logic_vector(3 downto 0);
+    signal trig_bit     : std_logic;
 
-signal command_sreg : std_logic_vector(7 downto 0);
-signal command_word : std_logic_vector(7 downto 0);
+    signal command_sreg : std_logic_vector(7 downto 0);
+    signal command_word : std_logic_vector(7 downto 0);
 
 begin
 
