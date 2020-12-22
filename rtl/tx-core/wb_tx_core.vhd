@@ -149,13 +149,14 @@ architecture behavioral of wb_tx_core is
 	
     component trig_code_gen is 
         port (
-            clk_i       : in std_logic;
-            rst_n_i     : in std_logic;
+            clk_i       :  in std_logic;
+            rst_n_i     :  in std_logic;
     
-            --enable_i    : in std_logic;
-            pulse_i     : in std_logic;
+            enable_i    :  in std_logic;
+            pulse_i     :  in std_logic;
     
-            code_o      : out std_logic_vector(15 downto 0)  --two 8-bit encodings
+            code_o      :  out std_logic_vector(15 downto 0);  --two 8-bit encodings
+            code_ready_o : out std_logic
         );
     end component;
 	
@@ -245,6 +246,7 @@ architecture behavioral of wb_tx_core is
     signal idle_words : word_array;
     
     signal trig_code : std_logic_vector(31 downto 0);
+    signal trig_code_ready : std_logic;
 begin
 
 	channel <= TO_INTEGER(unsigned(wb_adr_i(8 downto 4)));
@@ -457,6 +459,7 @@ begin
 			tx_enable_i => tx_enable_hs(I),
 			-- Trigger code
 			trig_code_i => trig_code,
+			trig_code_ready_i => trig_code_ready,
 			--trig_code_ready_i => trig_code_ready,
 			-- Looper
 			loop_pulse_i => tx_trig_pulse,
@@ -528,8 +531,10 @@ begin
 	cmp_trig_code_gen : trig_code_gen PORT MAP (
 	    clk_i => tx_clk_i,
 	    rst_n_i => rst_n_i,
+	    enable_i => trig_en_hs,
 	    pulse_i => tx_trig_pulse,
 	    code_o => trig_code,
+	    code_ready_o => trig_code_ready
 	);
     
     -- Create 1 tick per second for counter

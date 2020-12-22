@@ -15,10 +15,11 @@ entity trig_code_gen is
         clk_i       : in  std_logic;
         rst_n_i     : in  std_logic;
 
-        --enable_i    : in  std_logic;     -- For future use. Not yet specified.
+        enable_i    : in  std_logic;     -- For future use. Not yet specified.
         pulse_i     : in  std_logic;
 
-        code_o      : out std_logic_vector(15 downto 0)  -- Two 8-bit encodings
+        code_o      : out std_logic_vector(15 downto 0);  -- Two 8-bit encodings
+        code_ready_o : out std_logic 
     );
 end trig_code_gen;
 
@@ -124,7 +125,7 @@ begin
     -- change command_word when command_cntr is zero 
     -- ** Warning :  non-clocked process **
     ----------------------------------------------------------------------------
-    pr_command_cntr : process (command_cntr)
+    pr_command_word : process (command_cntr)
     begin
     
         if (command_cntr = "000") then
@@ -135,6 +136,21 @@ begin
 
     end process;
     
+    ----------------------------------------------------------------------------
+    -- assert code_ready_o for 4 cycles when the trigger unit is enabled and a 
+    -- new code word is ready
+    -- ** Warning :  non-clocked process **
+    ----------------------------------------------------------------------------
+    pr_code_done : process (command_cntr)
+    begin
+        
+        if (command_cntr = "000") then
+            code_ready_o <= enable_i;
+        else 
+            code_ready_o <= '0';
+        end if;
+        
+    end process;
 
     ----------------------------------------------------------------------------
     --  Encode upper 4 bits of command_word

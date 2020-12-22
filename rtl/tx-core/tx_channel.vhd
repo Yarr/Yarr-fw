@@ -29,6 +29,7 @@ entity tx_channel is
 		
 		-- Trig Code
 		trig_code_i : in std_logic_vector (15 downto 0);
+		trig_code_ready_i : in std_logic;
 		--trig_code_ready_i : in std_logic;
 		
 		-- Word Looper
@@ -76,7 +77,7 @@ architecture rtl of tx_channel is
             pulse_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
             pulse_interval_i : in std_logic_vector(15 downto 0);
             
-            --trig_code_ready_i: in std_logic;
+            trig_code_ready_i: in std_logic;
             data_valid_i : in std_logic;
             -- Output
             data_o      : out std_logic;
@@ -126,7 +127,7 @@ architecture rtl of tx_channel is
   signal sync_interval_s : std_logic_vector(7 downto 0);
   signal idle_word_s : std_logic_vector(31 downto 0);
   signal trig_code_s : std_logic_vector(15 downto 0);
-  --signal trig_code_ready_s : std_logic;
+  signal trig_code_ready_s : std_logic;
 
 begin
 
@@ -176,7 +177,7 @@ begin
            sync_interval_s <= sync_interval_i;
            idle_word_s <= idle_word_i;
            trig_code_s <= trig_code_i;
-           --trig_code_ready_s <= trig_code_ready_i;
+           trig_code_ready_s <= trig_code_ready_i;
 	   end if;
 	end process loop_proc;
 	
@@ -229,7 +230,7 @@ begin
 		sync_interval_i => sync_interval_s,
 		pulse_i => pulse_word_s,
 		pulse_interval_i => pulse_interval_s,
-		--trig_code_ready_i => trig_code_ready_s,
+		trig_code_ready_i => trig_code_ready_s,
 		data_valid_i => sport_data_valid,
 		data_o => tx_data_o,
 		data_read_o => sport_data_read
