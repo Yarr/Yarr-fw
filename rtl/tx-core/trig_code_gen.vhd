@@ -109,7 +109,6 @@ begin
     trig_bit <= or_reduce(trig_word);  -- Computes an OR of all bits in trig_word
 
 
-
     ----------------------------------------------------------------------------
     -- Shift trig_bit into command_sreg at the end of each bunch crossing
     ----------------------------------------------------------------------------
@@ -142,8 +141,9 @@ begin
     end process;
     
     ----------------------------------------------------------------------------
-    -- change first_words and assert first_word_done when a new code word is ready
-    -- and first_word_done is deasserted
+    -- change first_words and assert first_word_done when the first of the next
+    -- two code words is ready. first_word_done is deasserted when the second
+    -- code word is ready
     -- ** Warning :  non-clocked process **
     ----------------------------------------------------------------------------
     pr_first_word : process (rst_n_i, command_cntr)
@@ -168,8 +168,8 @@ begin
     end process;
     
     ----------------------------------------------------------------------------
-    -- change code_s and assert code_ready_s when the next 2 command words are 
-    -- ready
+    -- change code_s and assert code_ready_s when the next two code words are 
+    -- ready. code_read_s should remain asserted for 32 clock cycles
     -- ** Warning :  non-clocked process **
     ----------------------------------------------------------------------------
     pr_code_s : process (rst_n_i, command_cntr)
@@ -178,12 +178,17 @@ begin
         if (rst_n_i = '0') then
             code_s <= code_word & code_word;
             code_ready_s <= '0';
-        elsif (command_cntr = "001" and first_word_done = '1') then
-            code_s <= first_word & code_word;
-            code_ready_s <= enable_i;
+        elsif (command_cntr = "001") then
+            if (first_word_done = '1') then
+                code_s <= first_word & code_word;
+                code_ready_s <= enable_i;
+            else
+                code_s <= code_s;
+                code_ready_s <= '0';
+            end if;
         else
             code_s <= code_s;
-            code_ready_s <= '0';
+            code_ready_s <= code_ready_s;
         end if;
         
     end process;
