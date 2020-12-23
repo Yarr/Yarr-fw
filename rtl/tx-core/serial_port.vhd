@@ -78,7 +78,7 @@ begin
             -- 3. Autozero word [only when enabled]
             -- 4. Sync word
             -- 5. Idle
-            if (bit_count = g_PORT_WIDTH-1 and trig_code_ready_i <= '1' and enable_i = '1') then
+            if (bit_count = g_PORT_WIDTH-1 and trig_code_ready_i = '1' and enable_i = '1') then
                 sreg <= trig_code_i;
                 bit_count <= (others => '0');
                 sync_cnt <= sync_cnt + 1;
