@@ -12,13 +12,13 @@ use     ieee.numeric_std.all;
 
 entity trig_code_gen is 
     port (
-        clk_i       : in  std_logic;
-        rst_n_i     : in  std_logic;
+        clk_i        : in  std_logic;
+        rst_n_i      : in  std_logic;
 
-        enable_i    : in  std_logic;     -- For future use. Not yet specified.
-        pulse_i     : in  std_logic;
+        enable_i     : in  std_logic;
+        pulse_i      : in  std_logic;
 
-        code_o      : out std_logic_vector(15 downto 0);  -- Two 8-bit encodings
+        code_o       : out std_logic_vector(31 downto 0);  -- two 16-bit code words
         code_ready_o : out std_logic 
     );
 end trig_code_gen;
@@ -26,7 +26,7 @@ end trig_code_gen;
 ----------------------------------------------------------------------------
 -- Architecture for synthesis
 ----------------------------------------------------------------------------
-architecture behavioral of trig_code_gen is         -- TODO : Should really be called 'rtl' since this is not behavioral code
+architecture behavioral of trig_code_gen is
 
     -- Trigger encoding. Converts 4-bit pattern into an 8-bit code
     component trig_encoder
@@ -47,6 +47,12 @@ architecture behavioral of trig_code_gen is         -- TODO : Should really be c
     signal command_sreg : std_logic_vector(7 downto 0);
     signal command_word : std_logic_vector(7 downto 0);
 
+    signal code_word       : std_logic_vector (15 downto 0);
+    signal first_word      : std_logic_vector (15 downto 0);
+    signal first_word_done : std_logic;
+    
+    signal code_s       : std_logic_vector (31 downto 0);
+    signal code_ready_s : std_logic;
 begin
 
     ----------------------------------------------------------------------------
@@ -120,7 +126,6 @@ begin
         
     end process;
     
-
     ----------------------------------------------------------------------------
     -- change command_word when command_cntr is zero 
     -- ** Warning :  non-clocked process **
@@ -137,20 +142,55 @@ begin
     end process;
     
     ----------------------------------------------------------------------------
-    -- assert code_ready_o for 4 cycles when the trigger unit is enabled and a 
-    -- new code word is ready
+    -- change first_words and assert first_word_done when a new code word is ready
+    -- and first_word_done is deasserted
     -- ** Warning :  non-clocked process **
     ----------------------------------------------------------------------------
-    pr_code_done : process (command_cntr)
+    pr_first_word : process (rst_n_i, command_cntr)
     begin
-        
-        if (command_cntr = "000") then
-            code_ready_o <= enable_i;
-        else 
-            code_ready_o <= '0';
+    
+        if (rst_n_i = '0') then
+            first_word <= code_word;
+            first_word_done <= '0';
+        elsif (command_cntr = "001") then
+            if (first_word_done = '1') then
+                first_word <= first_word;
+                first_word_done <= '0';
+            else
+                first_word <= code_word;
+                first_word_done <= '1';
+            end if;
+        else
+            first_word <= first_word;
+            first_word_done <= first_word_done;
+        end if;
+    
+    end process;
+    
+    ----------------------------------------------------------------------------
+    -- change code_s and assert code_ready_s when the next 2 command words are 
+    -- ready
+    -- ** Warning :  non-clocked process **
+    ----------------------------------------------------------------------------
+    pr_code_s : process (rst_n_i, command_cntr)
+    begin
+    
+        if (rst_n_i = '0') then
+            code_s <= code_word & code_word;
+            code_ready_s <= '0';
+        elsif (command_cntr = "001" and first_word_done = '1') then
+            code_s <= first_word & code_word;
+            code_ready_s <= enable_i;
+        else
+            code_s <= code_s;
+            code_ready_s <= '0';
         end if;
         
     end process;
+    
+    -- Set the output signals
+    code_o <= code_s;
+    code_ready_o <= code_ready_s;
 
     ----------------------------------------------------------------------------
     --  Encode upper 4 bits of command_word
@@ -159,7 +199,7 @@ begin
     cmp_trig_encoder_hi : trig_encoder 
     port map (
         pattern_i   => command_word(7 downto 4),
-        code_o      => code_o(15 downto 8)
+        code_o      => code_word(15 downto 8)
     );
 
     ----------------------------------------------------------------------------
@@ -169,7 +209,7 @@ begin
     cmp_trig_encoder_lo : trig_encoder 
     port map (
         pattern_i   => command_word(3 downto 0),
-        code_o      => code_o(7 downto 0)
+        code_o      => code_word(7 downto 0)
     );
 
 

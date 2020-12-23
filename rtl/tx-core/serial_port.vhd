@@ -23,7 +23,7 @@ entity serial_port is
         rst_n_i     : in std_logic;
         -- Input
         enable_i    : in std_logic;
-        trig_code_i      : in std_logic_vector(15 downto 0);
+        trig_code_i      : in std_logic_vector(31 downto 0);
         data_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
         idle_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
         sync_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
@@ -52,7 +52,6 @@ architecture behavioral of serial_port is
 	end;
     -- Signals
     constant c_ZEROS : std_logic_vector(g_PORT_WIDTH-1 downto 0) := (others => '0');
-    constant c_COMMAND_WIDTH : integer := 16;
     signal bit_count : unsigned(log2_ceil(g_PORT_WIDTH) downto 0);
     signal sreg      : std_logic_vector(g_PORT_WIDTH-1 downto 0);
     signal sync_cnt : unsigned(7 downto 0);
@@ -79,7 +78,7 @@ begin
             -- 3. Autozero word [only when enabled]
             -- 4. Sync word
             -- 5. Idle
-            if (bit_count = c_COMMAND_WIDTH and trig_code_ready_i <= '1' and enable_i = '1') then
+            if (bit_count = g_PORT_WIDTH-1 and trig_code_ready_i <= '1' and enable_i = '1') then
                 sreg <= trig_code_i;
                 bit_count <= (others => '0');
                 sync_cnt <= sync_cnt + 1;

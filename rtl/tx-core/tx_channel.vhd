@@ -28,9 +28,8 @@ entity tx_channel is
 		tx_enable_i		: in std_logic;
 		
 		-- Trig Code
-		trig_code_i : in std_logic_vector (15 downto 0);
+		trig_code_i       : in std_logic_vector (31 downto 0);
 		trig_code_ready_i : in std_logic;
-		--trig_code_ready_i : in std_logic;
 		
 		-- Word Looper
 		loop_pulse_i    : in std_logic;
@@ -69,7 +68,7 @@ architecture rtl of tx_channel is
             rst_n_i     : in std_logic;
             -- Input
             enable_i    : in std_logic;
-            trig_code_i      : in std_logic_vector(15 downto 0);
+            trig_code_i      : in std_logic_vector(31 downto 0);
             data_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
             idle_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
             sync_i      : in std_logic_vector(g_PORT_WIDTH-1 downto 0);
@@ -126,7 +125,7 @@ architecture rtl of tx_channel is
   signal sync_word_s : std_logic_vector(31 downto 0);
   signal sync_interval_s : std_logic_vector(7 downto 0);
   signal idle_word_s : std_logic_vector(31 downto 0);
-  signal trig_code_s : std_logic_vector(15 downto 0);
+  signal trig_code_s : std_logic_vector(31 downto 0);
   signal trig_code_ready_s : std_logic;
 
 begin
