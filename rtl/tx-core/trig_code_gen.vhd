@@ -44,8 +44,12 @@ architecture behavioral of trig_code_gen is
     signal trig_word    : std_logic_vector(3 downto 0);
     signal trig_bit     : std_logic;
 
-    signal command_sreg : std_logic_vector(7 downto 0);
-    signal command_word : std_logic_vector(7 downto 0);
+    signal command_sreg     : std_logic_vector(7 downto 0);
+    signal command_word     : std_logic_vector(7 downto 0);
+    signal trig_encoding    : std_logic_vector(7 downto 0); 
+    
+    constant c_MAX_TAG      : integer := 49;
+    signal command_tag      : unsigned(7 downto 0);
 
     signal code_word       : std_logic_vector (15 downto 0);
     signal first_word      : std_logic_vector (15 downto 0);
@@ -141,6 +145,28 @@ begin
     end process;
     
     ----------------------------------------------------------------------------
+    -- Set the tag that will be used in the current command word
+    -- ** Warning :  non-clocked process **
+    ----------------------------------------------------------------------------
+    pr_command_tag : process (rst_n_i, command_cntr)
+    begin
+    
+        if (rst_n_i = '0') then
+            command_tag <= (others => '0');
+        elsif (command_cntr = "000") then
+            if (command_tag < c_MAX_TAG) then
+                command_tag <= command_tag + 1;
+            else 
+                command_tag <= (others => '0');
+            end if;
+        end if;
+    
+    end process;
+    
+    -- Set the current command word
+    code_word <= trig_encoding & std_logic_vector(command_tag);
+    
+    ----------------------------------------------------------------------------
     -- change first_words and assert first_word_done when the first of the next
     -- two code words is ready. first_word_done is deasserted when the second
     -- code word is ready
@@ -150,7 +176,7 @@ begin
     begin
     
         if (rst_n_i = '0') then
-            first_word <= code_word;
+            first_word <= trig_encoding & x"00";
             first_word_done <= '0';
         elsif (command_cntr = "001") then
             if (first_word_done = '1') then
@@ -176,7 +202,7 @@ begin
     begin
     
         if (rst_n_i = '0') then
-            code_s <= code_word & code_word;
+            code_s <= trig_encoding & x"00" & trig_encoding & x"00";
             code_ready_s <= '0';
         elsif (command_cntr = "001") then
             if (first_word_done = '1') then
@@ -204,17 +230,7 @@ begin
     cmp_trig_encoder_hi : trig_encoder 
     port map (
         pattern_i   => command_word(7 downto 4),
-        code_o      => code_word(15 downto 8)
-    );
-
-    ----------------------------------------------------------------------------
-    --  Encode lower 4 bits of command_word
-    -- ** Warning : code_o is a block output from this asychronous block **
-    ----------------------------------------------------------------------------
-    cmp_trig_encoder_lo : trig_encoder 
-    port map (
-        pattern_i   => command_word(3 downto 0),
-        code_o      => code_word(7 downto 0)
+        code_o      => trig_encoding
     );
 
 
