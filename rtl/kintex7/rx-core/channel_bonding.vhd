@@ -26,7 +26,6 @@ entity channel_bonding is
         rx_data_i       : in rx_data_array(g_NUM_LANES-1 downto 0);
         rx_header_i     : in rx_header_array(g_NUM_LANES-1 downto 0);
         rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
-        rx_stat_i       : in rx_status_array(g_NUM_LANES-1 downto 0);
         active_lanes_i  : in std_logic_vector(g_NUM_LANES-1 downto 0);
         rx_read_i       : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
@@ -39,35 +38,25 @@ end channel_bonding;
 architecture behavioral of channel_bonding is
 
     constant c_ALL_ZEROS : std_logic_vector(g_NUM_LANES-1 downto 0) := (others => '0');
-    constant c_ALL_UNKNOWN : std_logic_vector(63 downto 0) := (others => 'X');
+    constant c_ALL_UNDEFINED : std_logic_vector(63 downto 0) := (others => 'X');
 
     signal is_cb_frame : std_logic_vector(g_NUM_LANES-1 downto 0);
     signal is_cb_frame_prev : std_logic_vector(g_NUM_LANES-1 downto 0);
     signal lane_early : std_logic_vector(g_NUM_LANES-1 downto 0);
 
     -- Used by rx_channel to decide if data can be read out
-    signal valid : std_logic_vector(g_NUM_LANES-1 downto 0);
     signal empty : std_logic_vector(g_NUM_LANES-1 downto 0);
 
     signal data_d : rx_data_array(g_NUM_LANES-1 downto 0);
-    signal header_d : rx_header_array(g_NUM_LANES-1 downto 0);
-    signal valid_d : std_logic_vector(g_NUM_LANES-1 downto 0);
-
     signal rx_data_s : rx_data_array(g_NUM_LANES-1 downto 0);
-    signal rx_header_s : rx_header_array(g_NUM_LANES-1 downto 0);
-    signal rx_valid_s : std_logic_vector(g_NUM_LANES-1 downto 0);
     
-begin
-
-    rx_data_o <= rx_data_s;
+begin    
     
     pr_shift_data : process(clk)
     begin
         if rising_edge(clk) then
             for I in 0 to g_NUM_LANES-1 loop
                 data_d(I) <= rx_data_i(I);
-                header_d(I) <= rx_header_i(I);
-                valid_d(I) <= rx_valid_i(I);
             end loop;
         end if;
     end process;
@@ -107,37 +96,20 @@ begin
         for I in 0 to g_NUM_LANES-1 loop
             if (lane_early(I) = '1' and active_lanes_i(I) = '1') then
                 rx_data_s(I) <= data_d(I);
-                rx_header_s(I) <= header_d(I);
-                rx_valid_s(I) <= valid_d(I);
             else
                 rx_data_s(I) <= rx_data_i(I);
-                rx_header_s(I) <= rx_header_i(I);
-                rx_valid_s(I) <= rx_valid_i(I);
             end if;
-        end loop;
-    end process;
-
-    --Need to decide whether data is valid to be read out
-    pr_valid : process(rx_valid_s, rx_header_s)
-    begin
-        for I in 0 to g_NUM_LANES-1 loop
-            valid(I) <=   rx_valid_s(I) when (rx_header_s(I) = "01") else
-                            rx_valid_s(I) when ((rx_data_s(I)(63 downto 56) = c_AURORA_SEP) and (rx_data_s(I)(55 downto 48) = x"04")) else
-                            rx_valid_s(I) when ((rx_header_s(I) = "10") and (rx_data_s(I)(63 downto 56) = x"55")) else
-                            rx_valid_s(I) when ((rx_header_s(I) = "10") and (rx_data_s(I)(63 downto 56) = x"99")) else
-                            rx_valid_s(I) when ((rx_header_s(I) = "10") and (rx_data_s(I)(63 downto 56) = x"D2")) else
-                            '0';
         end loop;
     end process;
 
     --Set empty high if output data is in unkown state, or data is not good to be read
     --Set empty low if it was high and valid goes high
-    pr_set_empty : process(rx_read_i, valid, rx_data_s)
+    pr_set_empty : process(rx_read_i, rx_valid_i, rx_data_s)
     begin
         for I in 0 to g_NUM_LANES-1 loop
-            if ((rx_read_i(I) = '1') or (valid(I) = '0') or (rx_data_s(I) = c_ALL_UNKNOWN)) then
+            if ((rx_read_i(I) = '1') or (rx_valid_i(I) = '0') or (rx_data_s(I) = c_ALL_UNDEFINED)) then
                 empty(I) <= '1';
-            elsif ((valid(I) = '1') and (empty(I) = '1')) then
+            elsif ((rx_valid_i(I) = '1') and (empty(I) = '1')) then
                 empty(I) <= '0'; 
             else
                 empty(I) <= '0';
@@ -146,6 +118,6 @@ begin
     end process;
 
     rx_empty_o <= empty;
-  
+    rx_data_o <= rx_data_s;
     
 end behavioral;

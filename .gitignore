@@ -18,3 +18,5 @@ bitstream
 par
 project
 synthesize
+syn/kintex7/rd53_ohio_4x4_640Mbps/tef1001_R2/Makefile
+syn/kintex7/rd53_ohio_4x4_640Mbps/board_pkg.vhd
