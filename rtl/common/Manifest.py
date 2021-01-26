@@ -19,7 +19,10 @@ files = [
 "k_dual_bram.vhd",
 "wb_traffic_gen.vhd",
 "wb_spi.vhd",
-"ctrl_regs.vhd"
+"ctrl_regs.vhd",
+"handshake.vhd",
+"handshake_sdc.tcl",
+"handshake.xdc",
 ]
 
 library = "work"
