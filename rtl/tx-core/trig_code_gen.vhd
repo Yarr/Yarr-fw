@@ -162,7 +162,7 @@ begin
         if (rst_n_i = '0') then
             base_tag <= (others => '0');
         elsif rising_edge(clk_i) then
-            if (command_cntr = "000" and trig_cntr = "00" and first_word_done = '0') then
+            if (command_cntr = "000" and trig_cntr = "00") then
                 if (base_tag < c_MAX_TAG) then
                     base_tag <= base_tag + 1;
                 else 
