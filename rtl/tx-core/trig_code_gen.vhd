@@ -30,10 +30,18 @@ architecture behavioral of trig_code_gen is
 
     -- Trigger encoding. Converts 4-bit pattern into an 8-bit code
     component trig_encoder
-    port (
-        pattern_i   : in  std_logic_vector(3 downto 0);
-        code_o      : out std_logic_vector(7 downto 0)  
-    );
+        port (
+            pattern_i   : in  std_logic_vector(3 downto 0);
+            code_o      : out std_logic_vector(7 downto 0)  
+        );
+    end component;
+    
+    -- Tag encoding. Converts 6-bit base tag into an 8-bit code
+    component tag_encoder
+        port (
+            base_tag_i  : in unsigned(5 downto 0);
+            code_o      : out std_logic_vector(7 downto 0)
+          );
     end component;
 
 
@@ -49,7 +57,8 @@ architecture behavioral of trig_code_gen is
     signal trig_encoding    : std_logic_vector(7 downto 0); 
     
     constant c_MAX_TAG      : integer := 49;
-    signal command_tag      : unsigned(7 downto 0);
+    signal base_tag         : unsigned(5 downto 0);
+    signal tag_encoding     : std_logic_vector(7 downto 0);
 
     signal code_word       : std_logic_vector (15 downto 0);
     signal first_word      : std_logic_vector (15 downto 0);
@@ -146,25 +155,26 @@ begin
     
     ----------------------------------------------------------------------------
     -- Set the tag that will be used in the current command word
-    -- ** Warning :  non-clocked process **
     ----------------------------------------------------------------------------
-    pr_command_tag : process (rst_n_i, command_cntr)
+    pr_command_tag : process (rst_n_i, clk_i)
     begin
     
         if (rst_n_i = '0') then
-            command_tag <= (others => '0');
-        elsif (command_cntr = "000") then
-            if (command_tag < c_MAX_TAG) then
-                command_tag <= command_tag + 1;
-            else 
-                command_tag <= (others => '0');
+            base_tag <= (others => '0');
+        elsif rising_edge(clk_i) then
+            if (command_cntr = "000" and trig_cntr = "00" and first_word_done = '0') then
+                if (base_tag < c_MAX_TAG) then
+                    base_tag <= base_tag + 1;
+                else 
+                    base_tag <= (others => '0');
+                end if;
             end if;
         end if;
     
     end process;
     
     -- Set the current command word
-    code_word <= trig_encoding & std_logic_vector(command_tag);
+    code_word <= trig_encoding & tag_encoding;
     
     ----------------------------------------------------------------------------
     -- change first_words and assert first_word_done when the first of the next
@@ -227,10 +237,16 @@ begin
     --  Encode upper 4 bits of command_word
     -- ** Warning : code_o is a block output from this asychronous block **
     ----------------------------------------------------------------------------
-    cmp_trig_encoder_hi : trig_encoder 
+    cmp_trig_encoder : trig_encoder 
     port map (
         pattern_i   => command_word(7 downto 4),
         code_o      => trig_encoding
+    );
+    
+    cmp_tag_encoder : tag_encoder
+    port map (
+        base_tag_i  => base_tag,
+        code_o      => tag_encoding
     );
 
 
