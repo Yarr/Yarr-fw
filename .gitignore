@@ -13,6 +13,7 @@
 *.prm
 *.btree
 *.str
+*.wcfg
 .Xil
 bitstream
 par
