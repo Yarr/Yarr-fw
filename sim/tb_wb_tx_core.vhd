@@ -6,6 +6,7 @@
 -------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
+use     ieee.std_logic_misc.all;
 use     ieee.numeric_std.all;
 use     std.textio.all;
 
@@ -25,10 +26,22 @@ constant G_NUM_TX           : integer   := 2;
 constant CLK_FREQ_TX        : real      := 160.0;
 constant CLK_PER_TX         : time      := integer(1.0E+6/(CLK_FREQ_TX)) * 1 ps;
 
+-- Length of the counter used to synchronize trigger pulses
+constant PULSE_CNTR_LEN     : integer   := 4;
+-- Length of a trigger pattern word
+constant TRIGGER_WORD_LEN   : integer   := 4; 
+-- Deadtime between trigger pulses
+constant TRIGGER_DEADTIME   : integer   := 10;
+-- Initial value of the counter used to synchronize trigger pulses
+constant INIT_CNTR_VAL      : integer   := 25;
+
 signal clk                  : std_logic := '0';
 
 signal sim_done             : boolean   := false;
 signal reset                : std_logic := '1';
+
+-- Counter used to synchronize trigger pulses
+signal pulse_cntr           : unsigned (PULSE_CNTR_LEN-1 downto 0) := to_unsigned(INIT_CNTR_VAL, PULSE_CNTR_LEN);
 
 -------------------------------------------------------------
 -- Port signals on DUT
@@ -155,6 +168,33 @@ end procedure cpu_print_msg;
 
 
 -------------------------------------------------------------
+-- Generate a trigger pattern
+-------------------------------------------------------------
+procedure gen_trig_pattern (
+    signal clk              : in std_logic;
+    signal pulse_cntr       : in unsigned (PULSE_CNTR_LEN-1 downto 0);
+    constant trig_pattern   : in std_logic_vector (TRIGGER_WORD_LEN-1 downto 0);
+    signal ext_trig_i       : out std_logic
+) is
+begin
+    wait until clk'event and clk='0';
+    while (pulse_cntr /= 0) loop
+        wait until clk'event and clk='0';
+    end loop;
+    
+    for I in 1 to TRIGGER_WORD_LEN loop
+        ext_trig_i <= trig_pattern(TRIGGER_WORD_LEN-I);
+        wait until clk'event and clk='0';
+        ext_trig_i <= '0';
+        
+        for J in 1 to TRIGGER_DEADTIME loop
+            wait until clk'event and clk='0';
+        end loop; 
+    end loop; 
+end; 
+
+
+-------------------------------------------------------------
 -- WORD ADDRESSES, NOT MULTIPLIED BY 4
 -------------------------------------------------------------
 -- Address Map:
@@ -277,6 +317,19 @@ begin
             wait;
         end if;
     end process;
+    
+    -------------------------------------------------------------
+    -- Increments the counter used to synchronize trigger pulses
+    -- Counter wrap to zero is inferred not explicit.
+    -------------------------------------------------------------
+    pr_pulse_cntr : process (reset, tx_clk_i)
+    begin
+        if (reset = '1') then
+            pulse_cntr <= to_unsigned(INIT_CNTR_VAL, PULSE_CNTR_LEN);
+        elsif (rising_edge (tx_clk_i)) then
+            pulse_cntr <= pulse_cntr + 1;
+        end if;
+    end process;
 
 
     -------------------------------------------------------------
@@ -284,7 +337,7 @@ begin
     -------------------------------------------------------------
     pr_main : process
     variable v_wb_dat     : std_logic_vector(31 downto 0) := X"00000000";
-    variable trig_pat     : std_logic_vector(3 downto 0)  := "0001";
+    variable trig_pat     : std_logic_vector(3 downto 0)  := "1010";
     begin
         -- Reset
         cpu_print_msg("Start simulation");
@@ -313,11 +366,7 @@ begin
         wb_write(clk, ADR_CMD_EN   , X"00000001", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
         clk_delay(5);
         
-        
---        for I in 0 to 3 loop
---            ext_trig_i <= trig_pat(I);
---            clk_delay(4);
---        end loop;
+        gen_trig_pattern(tx_clk_i, pulse_cntr, "1000", ext_trig_i);
         
         clk_delay(100);
         
