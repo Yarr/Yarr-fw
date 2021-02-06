@@ -27,13 +27,13 @@ constant CLK_FREQ_TX        : real      := 160.0;
 constant CLK_PER_TX         : time      := integer(1.0E+6/(CLK_FREQ_TX)) * 1 ps;
 
 -- Length of the counter used to synchronize trigger pulses
-constant PULSE_CNTR_LEN     : integer   := 4;
+constant PULSE_CNTR_LEN     : integer   := 5;
 -- Length of a trigger pattern word
-constant TRIGGER_WORD_LEN   : integer   := 4; 
--- Deadtime between trigger pulses
-constant TRIGGER_DEADTIME   : integer   := 10;
+--constant TRIGGER_WORD_LEN   : integer   := 8; 
+-- Interval between trigger pulses
+constant TRIGGER_INTERVAL   : integer   := 3;
 -- Initial value of the counter used to synchronize trigger pulses
-constant INIT_CNTR_VAL      : integer   := 25;
+constant INIT_CNTR_VAL      : integer   := 10;
 
 signal clk                  : std_logic := '0';
 
@@ -171,10 +171,11 @@ end procedure cpu_print_msg;
 -- Generate a trigger pattern
 -------------------------------------------------------------
 procedure gen_trig_pattern (
-    signal clk              : in std_logic;
-    signal pulse_cntr       : in unsigned (PULSE_CNTR_LEN-1 downto 0);
-    constant trig_pattern   : in std_logic_vector (TRIGGER_WORD_LEN-1 downto 0);
-    signal ext_trig_i       : out std_logic
+    signal clk                : in std_logic;
+    signal pulse_cntr         : in unsigned (PULSE_CNTR_LEN-1 downto 0);
+    constant TRIGGER_WORD_LEN : in integer;
+    constant trig_pattern     : in std_logic_vector;
+    signal ext_trig_i         : out std_logic
 ) is
 begin
     wait until clk'event and clk='0';
@@ -182,12 +183,12 @@ begin
         wait until clk'event and clk='0';
     end loop;
     
-    for I in 1 to TRIGGER_WORD_LEN loop
-        ext_trig_i <= trig_pattern(TRIGGER_WORD_LEN-I);
+    for I in 0 to TRIGGER_WORD_LEN-1 loop
+        ext_trig_i <= trig_pattern(I);
         wait until clk'event and clk='0';
         ext_trig_i <= '0';
         
-        for J in 1 to TRIGGER_DEADTIME loop
+        for J in 1 to TRIGGER_INTERVAL loop
             wait until clk'event and clk='0';
         end loop; 
     end loop; 
@@ -369,7 +370,8 @@ begin
         wb_write(clk, ADR_CMD_EN   , X"00000001", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
         clk_delay(5);
         
-        gen_trig_pattern(tx_clk_i, pulse_cntr, "1000", ext_trig_i);
+        gen_trig_pattern(tx_clk_i, pulse_cntr, 16, "1000" & "0001" & "0000" & "1001", ext_trig_i);
+        gen_trig_pattern(tx_clk_i, pulse_cntr, 8, "0010" & "0100", ext_trig_i);
         
         clk_delay(100);
         

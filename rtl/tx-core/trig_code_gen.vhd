@@ -53,8 +53,8 @@ architecture behavioral of trig_code_gen is
     signal trig_word        : std_logic_vector(3 downto 0);
     signal trig_bit         : std_logic;
 
-    signal command_sreg     : std_logic_vector(7 downto 0);
-    signal command_word     : std_logic_vector(7 downto 0);
+    signal command_sreg     : std_logic_vector(3 downto 0);
+    signal command_word     : std_logic_vector(3 downto 0);
     signal trig_encoding    : std_logic_vector(7 downto 0); 
     
     constant c_MAX_TAG      : integer := 49;
@@ -133,7 +133,7 @@ begin
             command_sreg    <= (others=>'0');
         elsif rising_edge(clk_i) then
             if (trig_cntr = "11") then
-                command_sreg    <= command_sreg(6 downto 0) & trig_bit;
+                command_sreg    <= command_sreg(2 downto 0) & trig_bit;
             end if;
         end if;
         
@@ -163,7 +163,7 @@ begin
         if (rst_n_i = '0') then
             base_tag <= (others => '0');
         elsif rising_edge(clk_i) then
-            if (command_cntr = "00" and trig_cntr = "00") then
+            if (command_cntr = "00" and trig_cntr = "00" and command_sreg /= "0000") then
                 if (base_tag < c_MAX_TAG) then
                     base_tag <= base_tag + 1;
                 else 
@@ -175,7 +175,7 @@ begin
     end process;
     
     -- Set the current command word
-    code_word <=       c_IDLE_WORD when command_word(7 downto 4) = "0000"
+    code_word <=       c_IDLE_WORD when command_word = "0000"
                  else  trig_encoding & tag_encoding;
     
     ----------------------------------------------------------------------------
@@ -241,7 +241,7 @@ begin
     ----------------------------------------------------------------------------
     cmp_trig_encoder : trig_encoder 
     port map (
-        pattern_i   => command_word(7 downto 4),
+        pattern_i   => command_word,
         code_o      => trig_encoding
     );
     
