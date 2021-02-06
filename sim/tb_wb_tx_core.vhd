@@ -337,10 +337,13 @@ begin
     -------------------------------------------------------------
     pr_main : process
     variable v_wb_dat     : std_logic_vector(31 downto 0) := X"00000000";
-    variable trig_pat     : std_logic_vector(3 downto 0)  := "1010";
     begin
         -- Reset
         cpu_print_msg("Start simulation");
+        wb_we_i         <= '0';
+        wb_cyc_i        <= '0';
+        wb_stb_i        <= '0';
+        wb_adr_i        <= X"00000000";
         ext_trig_i      <= '0';
         reset           <= '1';
         clk_delay(10);

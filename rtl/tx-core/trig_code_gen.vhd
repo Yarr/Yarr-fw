@@ -44,13 +44,14 @@ architecture behavioral of trig_code_gen is
           );
     end component;
 
+    constant c_IDLE_WORD    : std_logic_vector(15 downto 0) := x"aaaa";
 
-    signal trig_cntr     : unsigned(1 downto 0);
-    signal command_cntr  : unsigned(2 downto 0);
+    signal trig_cntr        : unsigned(1 downto 0);
+    signal command_cntr     : unsigned(1 downto 0);
 
-    signal trig_sreg    : std_logic_vector(3 downto 0);
-    signal trig_word    : std_logic_vector(3 downto 0);
-    signal trig_bit     : std_logic;
+    signal trig_sreg        : std_logic_vector(3 downto 0);
+    signal trig_word        : std_logic_vector(3 downto 0);
+    signal trig_bit         : std_logic;
 
     signal command_sreg     : std_logic_vector(7 downto 0);
     signal command_word     : std_logic_vector(7 downto 0);
@@ -60,12 +61,12 @@ architecture behavioral of trig_code_gen is
     signal base_tag         : unsigned(5 downto 0);
     signal tag_encoding     : std_logic_vector(7 downto 0);
 
-    signal code_word       : std_logic_vector (15 downto 0);
-    signal first_word      : std_logic_vector (15 downto 0);
-    signal first_word_done : std_logic;
+    signal code_word        : std_logic_vector (15 downto 0);
+    signal first_word       : std_logic_vector (15 downto 0);
+    signal first_word_done  : std_logic;
     
-    signal code_s       : std_logic_vector (31 downto 0);
-    signal code_ready_s : std_logic;
+    signal code_s           : std_logic_vector (31 downto 0);
+    signal code_ready_s     : std_logic;
 begin
 
     ----------------------------------------------------------------------------
@@ -145,7 +146,7 @@ begin
     pr_command_word : process (command_cntr)
     begin
     
-        if (command_cntr = "000") then
+        if (command_cntr = "00") then
             command_word <= command_sreg;
         else
             command_word <= command_word;
@@ -162,7 +163,7 @@ begin
         if (rst_n_i = '0') then
             base_tag <= (others => '0');
         elsif rising_edge(clk_i) then
-            if (command_cntr = "000" and trig_cntr = "00") then
+            if (command_cntr = "00" and trig_cntr = "00") then
                 if (base_tag < c_MAX_TAG) then
                     base_tag <= base_tag + 1;
                 else 
@@ -174,7 +175,8 @@ begin
     end process;
     
     -- Set the current command word
-    code_word <= trig_encoding & tag_encoding;
+    code_word <=       c_IDLE_WORD when command_word(7 downto 4) = "0000"
+                 else  trig_encoding & tag_encoding;
     
     ----------------------------------------------------------------------------
     -- change first_words and assert first_word_done when the first of the next
@@ -186,9 +188,9 @@ begin
     begin
     
         if (rst_n_i = '0') then
-            first_word <= trig_encoding & x"00";
+            first_word <= c_IDLE_WORD;
             first_word_done <= '0';
-        elsif (command_cntr = "001") then
+        elsif (command_cntr = "00") then
             if (first_word_done = '1') then
                 first_word <= first_word;
                 first_word_done <= '0';
@@ -212,15 +214,15 @@ begin
     begin
     
         if (rst_n_i = '0') then
-            code_s <= trig_encoding & x"00" & trig_encoding & x"00";
+            code_s <= c_IDLE_WORD & c_IDLE_WORD;
             code_ready_s <= '0';
-        elsif (command_cntr = "001") then
-            if (first_word_done = '1') then
-                code_s <= first_word & code_word;
-                code_ready_s <= enable_i;
-            else
-                code_s <= code_s;
+        elsif (command_cntr = "00" and first_word_done = '1') then
+            code_s <= first_word & code_word;
+            
+            if (first_word = c_IDLE_WORD and code_word = c_IDLE_WORD) then
                 code_ready_s <= '0';
+            else
+                code_ready_s <= enable_i;
             end if;
         else
             code_s <= code_s;
