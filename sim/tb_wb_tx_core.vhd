@@ -28,12 +28,10 @@ constant CLK_PER_TX         : time      := integer(1.0E+6/(CLK_FREQ_TX)) * 1 ps;
 
 -- Length of the counter used to synchronize trigger pulses
 constant PULSE_CNTR_LEN     : integer   := 5;
--- Length of a trigger pattern word
---constant TRIGGER_WORD_LEN   : integer   := 8; 
 -- Interval between trigger pulses
 constant TRIGGER_INTERVAL   : integer   := 3;
 -- Initial value of the counter used to synchronize trigger pulses
-constant INIT_CNTR_VAL      : integer   := 10;
+constant INIT_CNTR_VAL      : integer   := 11;
 
 signal clk                  : std_logic := '0';
 
@@ -216,6 +214,7 @@ end;
 --   0x0F - Toggle trigger abort
 --   0x10 - TX polarity (RW)
 --   0x11 - 
+--   0x14 - Trigger Extender Interval (RW)
 -------------------------------------------------------------
 constant ADR_TX_FIFO            : integer := 0;    --   0x00 - FiFo (WO) (Write to enabled channels)
 constant ADR_CMD_EN             : integer := 1;    --   0x01 - CMD Enable (RW)
@@ -232,6 +231,7 @@ constant ADR_TRIG_WORD          : integer := 11;   --   0x0B - Trigger Word [31:
 constant ADR_TRIG_PTR           : integer := 12;   --   0x0C - Trigger Pointer (RW)
 constant ADR_TOG_TRIG_ABORT     : integer := 15;   --   0x0F - Toggle trigger abort
 constant ADR_TX_POL             : integer := 16;   --   0x10 - TX polarity (RW)
+constant ADR_EXT_TRIG_INTERVAL  : integer := 20;   --   0x14 - Trigger Extender Interval (RW)
 -------------------------------------------------------------
 
 -------------------------------------------------------------
@@ -370,8 +370,30 @@ begin
         wb_write(clk, ADR_CMD_EN   , X"00000001", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
         clk_delay(5);
         
+        cpu_print_msg("Set trigger abort to 0");
+        wb_write(clk, ADR_TOG_TRIG_ABORT   , X"00000000", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
+        clk_delay(5);
+        
+        cpu_print_msg("Generate trigger patterns");
         gen_trig_pattern(tx_clk_i, pulse_cntr, 16, "1000" & "0001" & "0000" & "1001", ext_trig_i);
         gen_trig_pattern(tx_clk_i, pulse_cntr, 8, "0010" & "0100", ext_trig_i);
+        
+        cpu_print_msg("Set trig extender interval to 7");
+        wb_write(clk, ADR_EXT_TRIG_INTERVAL   , X"00000007", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i);
+        gen_trig_pattern(tx_clk_i, pulse_cntr, 4, "1000", ext_trig_i);
+        
+        clk_delay(10);
+        
+        cpu_print_msg("Set trig extender interval to 11");
+        wb_write(clk, ADR_EXT_TRIG_INTERVAL   , X"0000000b", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i);
+        gen_trig_pattern(tx_clk_i, pulse_cntr, 4, "1000", ext_trig_i);
+        
+        clk_delay(10);
+        
+        cpu_print_msg("Set trig extender interval to 15");
+        wb_write(clk, ADR_EXT_TRIG_INTERVAL   , X"0000000f", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i);
+        gen_trig_pattern(tx_clk_i, pulse_cntr, 4, "1000", ext_trig_i);
+        
         
         clk_delay(100);
         

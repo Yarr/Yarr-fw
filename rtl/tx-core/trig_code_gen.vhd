@@ -122,7 +122,6 @@ begin
         
     trig_bit <= or_reduce(trig_word);  -- Computes an OR of all bits in trig_word
 
-
     ----------------------------------------------------------------------------
     -- Shift trig_bit into command_sreg at the end of each bunch crossing
     ----------------------------------------------------------------------------
@@ -175,8 +174,8 @@ begin
     end process;
     
     -- Set the current command word
-    code_word <=       c_IDLE_WORD when command_word = "0000"
-                 else  trig_encoding & tag_encoding;
+    code_word <= c_IDLE_WORD when command_word = "0000"
+                 else trig_encoding & tag_encoding;
     
     ----------------------------------------------------------------------------
     -- change first_words and assert first_word_done when the first of the next

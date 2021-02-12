@@ -25,4 +25,5 @@ ip-cores
 rtl/common/handshake.vhd
 rtl/kintex7/rx-core/channel_bonding.vhd
 rtl/tx-core/trig_shift_reg.vhd
+rtl/tx-core/trigger_unit.vhd
 sim/channel_bonding_tb.vhd

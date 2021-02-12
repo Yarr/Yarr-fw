@@ -26,6 +26,7 @@
 -- #   0x0F - Toggle trigger abort
 -- #   0x10 - TX polarity (RW)
 -- #   0x11 - 
+-- #   0x14 - Trigger Extender Interval (RW)
 
 library IEEE;
 use ieee.std_logic_1164.all;
@@ -148,6 +149,21 @@ architecture behavioral of wb_tx_core is
 	);
 	end component;
 	
+	component trigger_extender is 
+        generic (
+            g_INTERVAL_WIDTH : integer := 32
+        );
+        port (
+            clk_i          : in  std_logic;
+            rst_n_i        : in  std_logic;
+    
+            pulse_i        : in std_logic; 
+            ext_interval_i : in std_logic_vector (g_INTERVAL_WIDTH-1 downto 0);
+            
+            ext_pulse_o    : out std_logic
+        );
+    end component;
+	
     component trig_code_gen is 
         port (
             clk_i       :  in std_logic;
@@ -193,6 +209,7 @@ architecture behavioral of wb_tx_core is
 	signal trig_word_pointer : unsigned(4 downto 0);  
     signal tx_polarity : std_logic_vector((g_NUM_TX-1) downto 0);
     signal tx_polarity_t : std_logic_vector((g_NUM_TX-1) downto 0);
+    signal trig_ext_interval : std_logic_vector(31 downto 0);
     
     -- Trig input freq counter
     signal ext_trig_t1 : std_logic;
@@ -234,6 +251,7 @@ architecture behavioral of wb_tx_core is
 	signal sync_word_hs 		: std_logic_vector(31 downto 0);
 	signal sync_interval_hs 	: std_logic_vector(7 downto 0);
 	signal idle_word_hs 		: std_logic_vector(31 downto 0);
+	signal trig_ext_interval_hs : std_logic_vector(31 downto 0);
 
     signal pulse_word : std_logic_vector(31 downto 0);
     signal pulse_interval : std_logic_vector(15 downto 0);
@@ -245,6 +263,8 @@ architecture behavioral of wb_tx_core is
 
     signal idle_word : std_logic_vector(31 downto 0);
     signal idle_words : word_array;
+    
+    signal ext_trig_pulse : std_logic;
     
     signal trig_code : std_logic_vector(31 downto 0);
     signal trig_code_ready : std_logic;
@@ -273,6 +293,7 @@ begin
             trig_word <= (others => '0');
             trig_word_pointer <= (others => '0');
             trig_in_freq_d <= (others => '0');
+            trig_ext_interval <= (others => '0');
             pulse_word <= c_TX_AZ_WORD;
             pulse_interval <= std_logic_vector(c_TX_AZ_INTERVAL);
             sync_word <= c_TX_SYNC_WORD;
@@ -344,6 +365,9 @@ begin
 						when x"13" => -- Pulse word
 						    idle_word <= wb_dat_i(31 downto 0);
 							wb_ack_o <= '1';
+					    when x"14" => -- Trigger Extender Interval
+					        trig_ext_interval <= wb_dat_i;
+					        wb_ack_o <= '1';
 						when others =>
 							wb_ack_o <= '1';
 					end case;
@@ -413,6 +437,9 @@ begin
 						when x"13" => -- idle word
 							wb_dat_o(31 downto 0) <= idle_word;
 							wb_ack_o <= '1';
+					    when x"14" => -- Trigger Extender Interval
+					        wb_dat_o <= trig_ext_interval;
+					        wb_ack_o <= '1';
 						when others =>
 							wb_dat_o <= x"DEADBEEF";
 							wb_ack_o <= '1';
@@ -443,6 +470,7 @@ begin
 	hs16: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>tx_empty, do=>tx_empty_hs);
 	hs17: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di(0)=>trig_done, do(0)=>trig_done_hs);
 	hs18: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_in_freq, do=>trig_in_freq_hs);
+	hs19: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_ext_interval, do=>trig_ext_interval_hs);
 
 
 	tx_channels: for I in 0 to g_NUM_TX-1 generate
@@ -507,7 +535,6 @@ begin
 		end process;
 	end generate tx_channels;
 	
-	trig_pulse_o <= tx_trig_pulse;
 	cmp_trig_unit : trigger_unit PORT MAP (
 		clk_i => tx_clk_i,
 		rst_n_i => rst_n_i,
@@ -528,11 +555,20 @@ begin
 		trig_done_o => trig_done
 	);
 	
+	trig_pulse_o <= ext_trig_pulse;
+	cmp_trigger_extender : trigger_extender PORT MAP (
+	   clk_i => tx_clk_i,
+	   rst_n_i => rst_n_i,
+	   pulse_i => tx_trig_pulse,
+	   ext_interval_i => trig_ext_interval_hs,
+	   ext_pulse_o => ext_trig_pulse
+	);
+	
 	cmp_trig_code_gen : trig_code_gen PORT MAP (
 	    clk_i => tx_clk_i,
 	    rst_n_i => rst_n_i,
 	    enable_i => trig_en_hs,
-	    pulse_i => tx_trig_pulse,
+	    pulse_i => ext_trig_pulse,
 	    code_o => trig_code,
 	    code_ready_o => trig_code_ready
 	);

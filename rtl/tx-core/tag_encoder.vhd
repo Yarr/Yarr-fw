@@ -3,7 +3,7 @@
 --  File    : tag_encoder.vhd
 --  Author  : Lucas Cendes
 --  E-Mail  : lucascendes@gmail.com
---  Comments:
+--  Comments: Outputs a RD53B tag encoding
 ----------------------------------------------------------------------------
 
 library IEEE;
