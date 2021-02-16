@@ -137,16 +137,12 @@ architecture behavioral of aurora_rx_channel is
         clk : IN STD_LOGIC;
         probe0 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
         probe1 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
-        probe2 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
-        probe3 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
-        probe4 : IN STD_LOGIC_VECTOR(1 DOWNTO 0); 
-        probe5 : IN STD_LOGIC_VECTOR(1 DOWNTO 0); 
-        probe6 : IN STD_LOGIC_VECTOR(1 DOWNTO 0); 
-        probe7 : IN STD_LOGIC_VECTOR(1 DOWNTO 0); 
-        probe8 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
-        probe9 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
-        probe10 : IN STD_LOGIC_VECTOR(63 DOWNTO 0);
-        probe11 : IN STD_LOGIC_VECTOR(63 DOWNTO 0)
+        probe2 : IN STD_LOGIC_VECTOR(3 DOWNTO 0); 
+        probe3 : IN STD_LOGIC_VECTOR(3 DOWNTO 0); 
+        probe4 : IN STD_LOGIC_VECTOR(3 DOWNTO 0); 
+        probe5 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+		probe6 : IN STD_LOGIC_VECTOR(1 DOWNTO 0); 
+        probe7 : IN STD_LOGIC_VECTOR(1 DOWNTO 0)
     );
     END COMPONENT  ;
             
@@ -244,17 +240,13 @@ begin
    PORT MAP (
      clk => clk_rx_i,
      probe0 => rx_cb_din(0), 
-     probe1 => rx_cb_din(1), 
-     probe2 => rx_cb_din(2), 
-     probe3 => rx_cb_din(3),
-     probe4 => rx_header(0),
-     probe5 => rx_header(1), 
-     probe6 => rx_header(2),
-     probe7 => rx_header(3),
-     probe8 => rx_cb_dout(0),
-     probe9 => rx_cb_dout(1),
-     probe10 => rx_cb_dout(2),
-     probe11 => rx_cb_dout(3)
+     probe1 => rx_cb_dout(0), 
+     probe2 => rx_cb_empty, 
+     probe3 => rx_rden_t,
+     probe4 => rx_rden,
+     probe5(0) => rx_valid_s,
+     probe6 => rx_header(0),
+     probe7 => rx_header(1)
    );
     
 end behavioral;

@@ -155,18 +155,14 @@ architecture behavioral of wb_rx_core is
     COMPONENT ila_rx_dma_wb
     PORT (
         clk : IN STD_LOGIC;
-        probe0 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+        probe0 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
         probe1 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
-        probe2 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
-        probe3 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe4 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe5 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe6 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe8 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
-        probe9 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe10 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe11 : IN STD_LOGIC_VECTOR(0 DOWNTO 0)
+        probe2 : IN STD_LOGIC_VECTOR(3 DOWNTO 0); 
+        probe3 : IN STD_LOGIC_VECTOR(3 DOWNTO 0); 
+        probe4 : IN STD_LOGIC_VECTOR(3 DOWNTO 0); 
+		probe5 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+		probe6 : IN STD_LOGIC_VECTOR(1 DOWNTO 0); 
+        probe7 : IN STD_LOGIC_VECTOR(1 DOWNTO 0)
     );
     END COMPONENT  ;
 	
@@ -213,24 +209,6 @@ begin
 	debug(7 downto 0) <= rx_stat(0);
 	debug(15 downto 8) <= rx_data_raw(0);
 	debug(16) <= rx_valid(0);
-
---    wb_core_debug : ila_rx_dma_wb
---    PORT MAP (
---      clk => wb_clk_i,
---      probe0 => (others => '0'), 
---      probe1 => (others => '0'), 
---      probe2 => (others => '0'), 
---      probe3(0) => rx_fifo_empty(0),
---      probe4(0) => rx_fifo_empty(1),
---      probe5(0) => rx_enable_d(0), 
---      probe6(0) => rx_enable_d(1),
---      probe7(0) => '0',
---      probe8 => (others => '0'),
---      probe9(0) => '0',
---      probe10(0) => rx_fifo_rden_t(0),
---      probe11(0) => rx_fifo_rden_t(1)
---    );
-
 
     wb_proc: process (wb_clk_i, rst_n_i)
 	begin
@@ -404,5 +382,32 @@ begin
 			empty => rx_fifo_empty_t(I)
 		);
 	end generate;
+
+	wb_core_wr_debug : ila_rx_dma_wb
+    PORT MAP (
+     clk => rx_clk_i,
+     probe0 => rx_fifo_din(0), 
+     probe1 => rx_fifo_din(1), 
+     probe2 => "000" & rx_valid(0), 
+     probe3 => "000" & rx_valid(1),
+     probe4 => "000" & rx_fifo_wren(0),
+     probe5(0) => rx_fifo_wren(1),
+     probe6 => (others => '0'),
+     probe7 => (others => '0')
+   );
+
+   wb_core_rd_debug : ila_rx_dma_wb
+    PORT MAP (
+     clk => wb_clk_i,
+     probe0 => rx_fifo_dout_t(0), 
+     probe1 => rx_fifo_dout_t(1), 
+     probe2 => "000" & rx_fifo_empty_t(0), 
+     probe3 => "000" & rx_fifo_empty_t(1),
+     probe4 => "000" & rx_fifo_rden_t(0),
+     probe5(0) => rx_fifo_rden_t(1),
+     probe6 => (others => '0'),
+     probe7 => (others => '0')
+   );
+
 end behavioral;
 
