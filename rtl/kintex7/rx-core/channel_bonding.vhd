@@ -23,6 +23,7 @@ entity channel_bonding is
     port (
         clk             : in std_logic;
         -- Input
+        enable_i        : in std_logic;
         rx_data_i       : in rx_data_array(g_NUM_LANES-1 downto 0);
         rx_header_i     : in rx_header_array(g_NUM_LANES-1 downto 0);
         rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
@@ -47,17 +48,26 @@ architecture behavioral of channel_bonding is
     -- Used by rx_channel to decide if data can be read out
     signal empty : std_logic_vector(g_NUM_LANES-1 downto 0);
 
-    signal data_d : rx_data_array(g_NUM_LANES-1 downto 0);
+    signal data_d   : rx_data_array(g_NUM_LANES-1 downto 0);
+    signal header_d : rx_header_array(g_NUM_LANES-1 downto 0);
+    signal valid_d  : std_logic_vector(g_NUM_LANES-1 downto 0);
 
-    signal rx_data_s : rx_data_array(g_NUM_LANES-1 downto 0);
+    -- Bonded version of data, header, and valid signals
+    signal rx_data_b    : rx_data_array(g_NUM_LANES-1 downto 0);  
+    signal rx_header_b  : rx_header_array(g_NUM_LANES-1 downto 0);  
+    signal rx_valid_b   : std_logic_vector(g_NUM_LANES-1 downto 0);
+
+    signal valid_filtered : std_logic_vector(g_NUM_LANES-1 downto 0);
     
 begin    
     
-    pr_shift_data : process(clk)
+    pr_add_delay : process(clk)
     begin
         if rising_edge(clk) then
             for I in 0 to g_NUM_LANES-1 loop
                 data_d(I) <= rx_data_i(I);
+                header_d(I) <= rx_header_i(I);
+                valid_d(I) <= rx_valid_i(I);
             end loop;
         end if;
     end process;
@@ -92,23 +102,63 @@ begin
 
     --If a lane is early, output from its shift reg. Else, lane itself is outputted
     --Inactive lanes are directly outputted
-    pr_output : process(rx_data_i, data_d)
+    pr_bonding : process(clk)
+    begin
+        if rising_edge(clk) then
+            for I in 0 to g_NUM_LANES-1 loop
+                if (lane_early(I) = '1' and active_lanes_i(I) = '1') then
+                    rx_data_b(I)    <= data_d(I);
+                    rx_header_b(I)  <= header_d(I);
+                    rx_valid_b(I)   <= valid_d(I);
+                else
+                    rx_data_b(I)    <= rx_data_i(I);
+                    rx_header_b(I)  <= rx_header_i(I);
+                    rx_valid_b(I)   <= rx_valid_i(I);
+                end if;
+            end loop;
+        end if;
+    end process;
+
+        -- TODO need to save register reads!
+        -- TODO use 
+        
+        -- We expect these types of data:
+        -- b01 - D[63:0] - 64 bit data
+        -- b10 - 0x1E - 0x04 - 0xXXXX - D[31:0] - 32 bit data
+        -- b10 - 0x1E - 0x00 - 0x0000 - 0x00000000 - 0 bit data
+        -- b10 - 0x78 - Flag[7:0] - 0xXXXX - 0xXXXXXXXX - Idle
+        -- b10 - 0xB4 - D[55:0] - Register read (MM)
+    pr_filter : process(rx_header_b, rx_data_b)
     begin
         for I in 0 to g_NUM_LANES-1 loop
-            if (lane_early(I) = '1' and active_lanes_i(I) = '1') then
-                rx_data_s(I) <= data_d(I);
+            if (rx_header_b(I) = c_DATA_HEADER) then
+                -- Swapping [63:32] and [31:0] to reverse swapping by casting 64-bit to uint32_t
+                rx_data_o(I) <= rx_data_b(I)(31 downto 0) & rx_data_b(I)(63 downto 32);
+                valid_filtered <= rx_valid_b;
+            elsif (rx_data_b(I)(63 downto 56) = c_AURORA_SEP) then
+                rx_data_o(I) <= rx_data_b(I)(31 downto 0) & x"FFFFFFFF";
+                valid_filtered <= rx_valid_b;
+            elsif (rx_header_b(I) = c_CMD_HEADER) then
+                if ((rx_data_b(I)(63 downto 56) = x"55") or (rx_data_b(I)(63 downto 56) = x"99") or (rx_data_b(I)(63 downto 56) = x"D2")) then
+                    rx_data_o(I) <= rx_data_b(I)(31 downto 0) & rx_data_b(I)(63 downto 32);
+                    valid_filtered <= rx_valid_b;
+                else
+                    rx_data_o(I) <= x"FFFFFFFFFFFFFFFF";
+                    valid_filtered <= '0';
+                end if;
             else
-                rx_data_s(I) <= rx_data_i(I);
+                rx_data_o(I) <= x"FFFFFFFFFFFFFFFF";
+                valid_filtered <= '0';
             end if;
         end loop;
     end process;
 
     --Set empty high if output data is in unkown state, or data is not good to be read
     --Set empty low if it was high and valid goes high
-    pr_set_empty : process(rx_read_i, rx_valid_i, rx_data_s)
+    pr_set_empty : process(rx_read_i, rx_valid_i, rx_data_b)
     begin
         for I in 0 to g_NUM_LANES-1 loop
-            if ((rx_read_i(I) = '1') or (rx_valid_i(I) = '0') or (rx_data_s(I) = c_ALL_UNDEFINED)) then
+            if ((rx_read_i(I) = '1') or (valid_filtered(I) = '0') or (rx_data_b(I) = c_ALL_UNDEFINED)) then
                 empty(I) <= '1';
             elsif ((rx_valid_i(I) = '1') and (empty(I) = '1')) then
                 empty(I) <= '0'; 
@@ -119,6 +169,5 @@ begin
     end process;
 
     rx_empty_o <= empty;
-    rx_data_o <= rx_data_s;
     
 end behavioral;
