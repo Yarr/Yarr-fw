@@ -16,32 +16,33 @@ use UNISIM.VComponents.all;
 library work;
 use work.aurora_rx_pkg.all;
 
-entity channel_bonding_tb is
+entity sim_aurora_cb is
 --  Port ( );
-end channel_bonding_tb;
+end sim_aurora_cb;
 
-architecture Behavioral of channel_bonding_tb is
-    component channel_bonding
-        generic (
+architecture Behavioral of sim_aurora_cb is
+    component simple_aurora_rx_channel
+    generic (
         g_NUM_LANES : integer range 1 to 4 := 1
     );
     port (
-        clk             : in std_logic;
+        -- Sys connect
+        rst_n_i : in std_logic;
+        clk_rx_i : in std_logic; -- Fabric clock (serdes/8)
+        
         -- Input
-        rx_data_i       : in rx_data_array(g_NUM_LANES-1 downto 0);
-        rx_header_i     : in rx_header_array(g_NUM_LANES-1 downto 0);
-        rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
-        rx_stat_i       : in rx_status_array(g_NUM_LANES-1 downto 0);
-        active_lanes_i  : in std_logic_vector(g_NUM_LANES-1 downto 0);
-        rx_read_i       : in std_logic_vector(g_NUM_LANES-1 downto 0);
+        rx_data       : in rx_data_array(g_NUM_LANES-1 downto 0);
+        rx_header     : in rx_header_array(g_NUM_LANES-1 downto 0);
+        rx_data_valid : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
         -- Output
-        rx_data_o       : out rx_data_array(g_NUM_LANES-1 downto 0);
-        rx_empty_o      : out std_logic_vector(g_NUM_LANES-1 downto 0)      
+        rx_data_o : out std_logic_vector(63 downto 0);
+        rx_valid_o : out std_logic;
+        rx_stat_o : out std_logic_vector(7 downto 0)
     );
-    end component channel_bonding;
+    end component simple_aurora_rx_channel;
     
-    constant g_NUM_LANES : integer := 2;
+    constant g_NUM_LANES : integer := 4;
     constant c_52_ZEROS : std_logic_vector(51 downto 0) := (others => '0');
     constant c_CB_FRAME : std_logic_vector(63 downto 0) := c_AURORA_IDLE & "0001" & c_52_ZEROS;   
 
@@ -69,18 +70,17 @@ begin
         wait for RX_CLK_PERIOD/2;
     end process rx_clk_proc;
     
-    dut_channel_bond : channel_bonding
+    dut_aurora_rx_channel : simple_aurora_rx_channel
         generic map (g_NUM_LANES => 2)
-        port map (
-            clk             => clk_rx_i,
-            rx_data_i       => rx_cb_din,
-            rx_header_i     => rx_cb_header,
-            rx_valid_i      => rx_cb_dvalid,
-            rx_stat_i       => rx_cb_status,
-            active_lanes_i    => (others => '1'),
-            rx_read_i       => rx_read_i,
-            rx_data_o       => rx_cb_dout,
-            rx_empty_o      => rx_empty_o
+        port map(
+        rst_n_i  =>,
+        clk_rx_i =>,
+        rx_data       =>,
+        rx_header     =>,
+        rx_data_valid =>,
+        rx_data_o =>,
+        rx_valid_o =>,
+        rx_stat_o =>
     );
     
     pr_incr_cnt : process(clk_rx_i)

@@ -16,7 +16,7 @@ use unisim.vcomponents.all ;
 library work;
 use work.aurora_rx_pkg.all;
 
-entity aurora_rx_channel is
+entity simple_aurora_rx_channel is
     generic (
         g_NUM_LANES : integer range 1 to 4 := 1
     );
@@ -35,9 +35,9 @@ entity aurora_rx_channel is
         rx_valid_o : out std_logic;
         rx_stat_o : out std_logic_vector(7 downto 0)
     );
-end aurora_rx_channel;
+end simple_aurora_rx_channel;
 
-architecture behavioral of aurora_rx_channel is
+architecture behavioral of simple_aurora_rx_channel is
 
 	function log2_ceil(val : integer) return natural is
 		 variable result : natural;
@@ -93,6 +93,7 @@ architecture behavioral of aurora_rx_channel is
         port (
             clk             : in std_logic;
             -- Input
+            enable_i        : in std_logic;
             rx_data_i       : in rx_data_array(g_NUM_LANES-1 downto 0);
             rx_header_i     : in rx_header_array(g_NUM_LANES-1 downto 0);
             rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
@@ -179,46 +180,35 @@ begin
     end process reg_proc;
     
     lane_loop: for I in 0 to g_NUM_LANES-1 generate
-        -- lane_cmp : aurora_rx_lane port map (
-        --     rst_n_i => rst_n_i,
-        --     clk_rx_i => clk_rx_i,
-        --     clk_serdes_i => clk_serdes_i,
-        --     rx_data_i_p => rx_data_i_p(I),
-        --     rx_data_i_n => rx_data_i_n(I),
-        --     rx_polarity_i => rx_polarity(I),
-        --     rx_data_o => rx_data(I),
-        --     rx_header_o => rx_header(I),
-        --     rx_valid_o => rx_data_valid(I),
-        --     rx_stat_o => rx_status(I)
-        -- );
-        -- rx_stat_o(I) <= rx_status(I)(1);
-      
-        -- TODO need to save register reads!
-        -- TODO use 
-        
-        -- We expect these types of data:
-        -- b01 - D[63:0] - 64 bit data
-        -- b10 - 0x1E - 0x04 - 0xXXXX - D[31:0] - 32 bit data
-        -- b10 - 0x1E - 0x00 - 0x0000 - 0x00000000 - 0 bit data
-        -- b10 - 0x78 - Flag[7:0] - 0xXXXX - 0xXXXXXXXX - Idle
-        -- b10 - 0xB4 - D[55:0] - Register read (MM)
-        
-        -- Swapping [63:32] and [31:0] to reverse swapping by casting 64-bit to uint32_t
-        rx_cb_din(I) <= rx_data(I)(31 downto 0) & rx_data(I)(63 downto 32) when (rx_header(I) = "01") else
-                          rx_data(I)(31 downto 0) & x"FFFFFFFF" when (rx_data(I)(63 downto 56) = c_AURORA_SEP) else
-                          rx_data(I)(31 downto 0) & rx_data(I)(63 downto 32) when ((rx_header(I) = "10") and (rx_data(I)(63 downto 56) = x"55")) else
-                          rx_data(I)(31 downto 0) & rx_data(I)(63 downto 32) when ((rx_header(I) = "10") and (rx_data(I)(63 downto 56) = x"99")) else
-                          rx_data(I)(31 downto 0) & rx_data(I)(63 downto 32) when ((rx_header(I) = "10") and (rx_data(I)(63 downto 56) = x"D2")) else
-                          x"FFFFFFFFFFFFFFFF";
-        rx_cb_dvalid(I) <= rx_data_valid(I) when (rx_header(I) = "01") else
-                           rx_data_valid(I) when ((rx_data(I)(63 downto 56) = c_AURORA_SEP) and (rx_data(I)(55 downto 48) = x"04")) else
-                           rx_data_valid(I) when ((rx_header(I) = "10") and (rx_data(I)(63 downto 56) = x"55")) else
-                           rx_data_valid(I) when ((rx_header(I) = "10") and (rx_data(I)(63 downto 56) = x"99")) else
-                           rx_data_valid(I) when ((rx_header(I) = "10") and (rx_data(I)(63 downto 56) = x"D2")) else
-                           '0';
-                           
-        
+        lane_cmp : aurora_rx_lane port map (
+            rst_n_i => rst_n_i,
+            clk_rx_i => clk_rx_i,
+            clk_serdes_i => clk_serdes_i,
+            rx_data_i_p => rx_data_i_p(I),
+            rx_data_i_n => rx_data_i_n(I),
+            rx_polarity_i => rx_polarity(I),
+            rx_data_o => rx_data(I),
+            rx_header_o => rx_header(I),
+            rx_valid_o => rx_data_valid(I),
+            rx_stat_o => rx_status(I)
+        );
+        rx_stat_o(I) <= rx_status(I)(1); 
+
     end generate lane_loop;
+
+    cmp_channel_bond : channel_bonding
+        generic map (g_NUM_LANES => g_NUM_LANES)
+        port map (
+            clk             => clk_rx_i,
+            enable_i        => enable_i,
+            rx_data_i       => rx_data,
+            rx_header_i     => rx_header,
+            rx_valid_i      => rx_data_valid,
+            active_lanes_i  => "1111",
+            rx_read_i       => rx_rden,
+            rx_data_o       => rx_cb_dout,
+            rx_empty_o      => rx_cb_empty
+    );
 
     cmp_channel_bond : channel_bonding
         generic map (g_NUM_LANES => g_NUM_LANES)
