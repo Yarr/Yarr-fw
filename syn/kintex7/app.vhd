@@ -561,7 +561,7 @@ begin
         locked => pll_200_locked_s            
       );
     
-    wb_clk_s <= clk_i;  --fails timing. To pass timing, use clk_160_s
+    wb_clk_s <= clk_160_s;
     
     -- Select RX serdes CLK
     serdes_clk_1280_gen: if c_RX_SPEED = "1280" generate
@@ -925,8 +925,6 @@ wb_dev_gen : if wb_dev_c = '1' generate
                 trig_pulse_o => trig_pulse,
                 -- Trig
                 ext_trig_i => int_trig_t
-                
-                --trig_code_o => open
             );
      end generate fei4_type_tx;
      rd53_type_tx: if c_FE_TYPE = "RD53" generate 
@@ -950,8 +948,6 @@ wb_dev_gen : if wb_dev_c = '1' generate
                 trig_pulse_o => trig_pulse,
                 -- Trig
                 ext_trig_i => int_trig_t
-                
-                --trig_code_o => open
             );
      end generate rd53_type_tx;
         

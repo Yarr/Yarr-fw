@@ -22,6 +22,9 @@ synthesize
 yarr.sim
 Makefile
 ip-cores
+syn
+rtl/kintex7/rx-core/aurora_rx_pkg.vhd
+rtl/kintex7/rx-core/shift_reg.vhd
 rtl/common/handshake.vhd
 rtl/kintex7/rx-core/channel_bonding.vhd
 rtl/tx-core/trig_shift_reg.vhd
