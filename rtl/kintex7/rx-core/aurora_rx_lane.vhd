@@ -17,7 +17,6 @@ use unisim.vcomponents.all ;
 
 library work;
 use work.board_pkg.all;
-use work.aurora_rx_pkg.all;
 
 entity aurora_rx_lane is 
     port (
@@ -121,6 +120,8 @@ architecture behavioral of aurora_rx_lane is
 --    constant c_SLIP_SERDES_MAX : unsigned(7 downto 0) := to_unsigned(8, 8);
 --    constant c_SERDES8_CYCLE : unsigned(3 downto 0) := to_unsigned(1, 4);
 
+    constant c_DATA_HEADER : std_logic_vector(1 downto 0) := "01";
+    constant c_CMD_HEADER : std_logic_vector(1 downto 0) := "10";
     constant c_SYNC_MAX : unsigned(7 downto 0) := to_unsigned(32, 8);
     constant c_VALID_WAIT : unsigned(7 downto 0) := to_unsigned(16, 8);
 
