@@ -149,7 +149,7 @@ architecture behavioral of wb_tx_core is
 	);
 	end component;
 	
-	component trigger_extender is 
+	component pulse_extender is 
         generic (
             g_INTERVAL_WIDTH : integer := 32
         );
@@ -556,7 +556,7 @@ begin
 	);
 	
 	trig_pulse_o <= ext_trig_pulse;
-	cmp_trigger_extender : trigger_extender PORT MAP (
+	cmp_pulse_extender : pulse_extender PORT MAP (
 	   clk_i => tx_clk_i,
 	   rst_n_i => rst_n_i,
 	   pulse_i => tx_trig_pulse,

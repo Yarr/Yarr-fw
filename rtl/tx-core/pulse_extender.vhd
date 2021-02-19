@@ -10,7 +10,7 @@ use     ieee.std_logic_1164.all;
 use     ieee.std_logic_misc.all;
 use     ieee.numeric_std.all;
 
-entity trigger_extender is 
+entity pulse_extender is 
     generic (
         g_INTERVAL_WIDTH : integer := 32
     );
@@ -23,9 +23,9 @@ entity trigger_extender is
         
         ext_pulse_o    : out std_logic
     );
-end trigger_extender;
+end pulse_extender;
 
-architecture behavioral of trigger_extender is
+architecture behavioral of pulse_extender is
 
     signal cycle_counter : unsigned (g_INTERVAL_WIDTH-1 downto 0);
 
