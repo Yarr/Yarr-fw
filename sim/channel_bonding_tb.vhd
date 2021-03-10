@@ -90,7 +90,7 @@ begin
                     
         cb_enable <= '1';
         cb_dvalid <= "11";
-        cb_active_lanes <= "10";
+        cb_active_lanes <= "11";
 
         cb_din(0) <= c_CB_FRAME;
         cb_header(0) <= c_CMD_HEADER;
