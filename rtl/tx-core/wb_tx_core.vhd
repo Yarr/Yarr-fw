@@ -27,6 +27,7 @@
 -- #   0x10 - TX polarity (RW)
 -- #   0x11 - 
 -- #   0x14 - Trigger Extender Interval (RW)
+-- #   0x15 - Trigger Code Generator Enable (RW)
 
 library IEEE;
 use ieee.std_logic_1164.all;
@@ -177,19 +178,19 @@ architecture behavioral of wb_tx_core is
         );
     end component;
     
-    component tx_core_ila is
-        port (
-            clk     : in std_logic;
-            probe0  : in std_logic;
-            probe1  : in std_logic;
-            probe2  : in std_logic_vector(31 downto 0);
-            probe3  : in std_logic;
-            probe4  : in std_logic;
-            probe5  : in std_logic;
-            probe6  : in std_logic;
-            probe7  : in std_logic
-        );
-    end component;
+--    component tx_core_ila is
+--        port (
+--            clk     : in std_logic;
+--            probe0  : in std_logic;
+--            probe1  : in std_logic;
+--            probe2  : in std_logic_vector(31 downto 0);
+--            probe3  : in std_logic;
+--            probe4  : in std_logic;
+--            probe5  : in std_logic;
+--            probe6  : in std_logic;
+--            probe7  : in std_logic
+--        );
+--    end component;
 	
 	-- Signals
 	signal tx_data_cmd : std_logic_vector(g_NUM_TX-1 downto 0);
@@ -224,6 +225,7 @@ architecture behavioral of wb_tx_core is
     signal tx_polarity : std_logic_vector((g_NUM_TX-1) downto 0);
     signal tx_polarity_t : std_logic_vector((g_NUM_TX-1) downto 0);
     signal trig_ext_interval : std_logic_vector(31 downto 0);
+    signal trig_code_gen_en  : std_logic;
     
     -- Trig input freq counter
     signal ext_trig_t1 : std_logic;
@@ -266,6 +268,7 @@ architecture behavioral of wb_tx_core is
 	signal sync_interval_hs 	: std_logic_vector(7 downto 0);
 	signal idle_word_hs 		: std_logic_vector(31 downto 0);
 	signal trig_ext_interval_hs : std_logic_vector(31 downto 0);
+	signal trig_code_gen_en_hs  : std_logic;
 
     signal pulse_word : std_logic_vector(31 downto 0);
     signal pulse_interval : std_logic_vector(15 downto 0);
@@ -308,6 +311,7 @@ begin
             trig_word_pointer <= (others => '0');
             trig_in_freq_d <= (others => '0');
             trig_ext_interval <= (others => '0');
+            trig_code_gen_en <= '0';
             pulse_word <= c_TX_AZ_WORD;
             pulse_interval <= std_logic_vector(c_TX_AZ_INTERVAL);
             sync_word <= c_TX_SYNC_WORD;
@@ -382,6 +386,9 @@ begin
 					    when x"14" => -- Trigger Extender Interval
 					        trig_ext_interval <= wb_dat_i;
 					        wb_ack_o <= '1';
+					    when x"15" => --Trigger Code Generator Enable
+					       trig_code_gen_en <= wb_dat_i(0);
+					       wb_ack_o <= '1';
 						when others =>
 							wb_ack_o <= '1';
 					end case;
@@ -454,6 +461,9 @@ begin
 					    when x"14" => -- Trigger Extender Interval
 					        wb_dat_o <= trig_ext_interval;
 					        wb_ack_o <= '1';
+					    when x"15" => --Trigger Code Generator Enable
+					        wb_dat_o(0) <= trig_code_gen_en;
+					        wb_ack_o <= '1';
 						when others =>
 							wb_dat_o <= x"DEADBEEF";
 							wb_ack_o <= '1';
@@ -485,7 +495,7 @@ begin
 	hs17: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di(0)=>trig_done, do(0)=>trig_done_hs);
 	hs18: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_in_freq, do=>trig_in_freq_hs);
 	hs19: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_ext_interval, do=>trig_ext_interval_hs);
-
+	hs20: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di(0)=>trig_code_gen_en, do(0)=>trig_code_gen_en_hs);
 
 	tx_channels: for I in 0 to g_NUM_TX-1 generate
 	begin
@@ -581,23 +591,23 @@ begin
 	cmp_trig_code_gen : trig_code_gen PORT MAP (
 	    clk_i => tx_clk_i,
 	    rst_n_i => rst_n_i,
-	    enable_i => trig_en_hs,
+	    enable_i => trig_code_gen_en_hs,
 	    pulse_i => ext_trig_pulse,
 	    code_o => trig_code,
 	    code_ready_o => trig_code_ready
 	);
 	
-	cmp_tx_core_ila : tx_core_ila PORT MAP (
-	   clk    => tx_clk_i,
-	   probe0 => tx_trig_pulse,
-	   probe1 => trig_code_ready,
-	   probe2 => trig_code,
-	   probe3 => tx_data_cmd(0),
-	   probe4 => trig_en_hs,
-	   probe5 => trig_en,
-	   probe6 => '0',
-	   probe7 => '0'
-	);
+--	cmp_tx_core_ila : tx_core_ila PORT MAP (
+--	   clk    => tx_clk_i,
+--	   probe0 => tx_trig_pulse,
+--	   probe1 => trig_code_ready,
+--	   probe2 => trig_code,
+--	   probe3 => tx_data_cmd(0),
+--	   probe4 => trig_en_hs,
+--	   probe5 => trig_en,
+--	   probe6 => '0',
+--	   probe7 => '0'
+--	);
     
     -- Create 1 tick per second for counter
     per_sec_proc : process(tx_clk_i, rst_n_i)

@@ -64,7 +64,6 @@ signal trig_pulse_o         : std_logic;
 -- Sync
 signal ext_trig_i           : std_logic;
 
-
 -------------------------------------------------------------
 -- CPU write procedure
 -------------------------------------------------------------
@@ -215,6 +214,7 @@ end;
 --   0x10 - TX polarity (RW)
 --   0x11 - 
 --   0x14 - Trigger Extender Interval (RW)
+--   0x15 - Trigger Code Generator Enable (RW)  
 -------------------------------------------------------------
 constant ADR_TX_FIFO            : integer := 0;    --   0x00 - FiFo (WO) (Write to enabled channels)
 constant ADR_CMD_EN             : integer := 1;    --   0x01 - CMD Enable (RW)
@@ -231,7 +231,9 @@ constant ADR_TRIG_WORD          : integer := 11;   --   0x0B - Trigger Word [31:
 constant ADR_TRIG_PTR           : integer := 12;   --   0x0C - Trigger Pointer (RW)
 constant ADR_TOG_TRIG_ABORT     : integer := 15;   --   0x0F - Toggle trigger abort
 constant ADR_TX_POL             : integer := 16;   --   0x10 - TX polarity (RW)
+constant ADR_SYNC_INTERVAL      : integer := 18;   --   0x12 - Sync Interval (RW)
 constant ADR_EXT_TRIG_INTERVAL  : integer := 20;   --   0x14 - Trigger Extender Interval (RW)
+constant ADR_TRIG_CODE_GEN_EN   : integer := 21;   --   0x15 - Trigger Code Generator Enable (RW)     
 -------------------------------------------------------------
 
 -------------------------------------------------------------
@@ -256,6 +258,28 @@ port (
     tx_data_o       : out std_logic_vector(G_NUM_TX-1 downto 0);
     trig_pulse_o    : out std_logic;
     ext_trig_i      : in std_logic
+);
+end component;
+
+component RD53_top is
+port (
+    reset           : in  std_logic;
+    
+    clk_tx          : in  std_logic;
+    clk             : in  std_logic;
+    
+    uart_rxd        : in  std_logic;
+    uart_txd        : out std_logic;
+    
+    ser_ttc_data    : in  std_logic;
+    
+    chip_id         : in  std_logic_vector(3 downto 0);
+    
+    cmd_out_p       : out std_logic_vector(3 downto 0);
+    cmd_out_n       : out std_logic_vector(3 downto 0);
+    
+    trig_out        : out std_logic;
+    debug           : out std_logic_vector(2 downto 0)
 );
 end component;
 
@@ -288,7 +312,30 @@ begin
         trig_pulse_o    => trig_pulse_o     , -- out std_logic;
         ext_trig_i      => ext_trig_i         -- in std_logic
     );
-
+    
+    -------------------------------------------------------------
+    -- RD53B Emulator
+    -------------------------------------------------------------
+    u_RD53_top : RD53_top
+    port map (
+        reset           => reset,
+        
+        clk_tx          => tx_clk_i,
+        clk             => tx_clk_i,
+        
+        uart_rxd        => '1',
+        uart_txd        => open,
+        
+        ser_ttc_data    => tx_data_o(0),
+        
+        chip_id         => "0011",
+        
+        cmd_out_p       => open,
+        cmd_out_n       => open,
+        
+        trig_out        => open,
+        debug           => open
+    );
 
     -------------------------------------------------------------
     -- Generate system clock until sim_done is true
@@ -349,7 +396,7 @@ begin
         reset           <= '1';
         clk_delay(10);
         reset           <= '0';
-        clk_delay(10);
+        clk_delay(100);
 
         ------------------------------------------------------------------------
         -- Configure registers through wishbone bus 
@@ -362,16 +409,24 @@ begin
         wb_write(clk, ADR_TRIG_EN   , X"00000001", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
         clk_delay(5);
         
+        cpu_print_msg("Set trigger code generator enable to 1");
+        wb_write(clk, ADR_TRIG_CODE_GEN_EN  , X"00000001", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
+        clk_delay(5);
+        
         cpu_print_msg("Set tx polarity to 0");
         wb_write(clk, ADR_TX_POL   , X"00000000", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
         clk_delay(5);
         
-        cpu_print_msg("Set CMD enable to 1");
-        wb_write(clk, ADR_CMD_EN   , X"00000001", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
+        cpu_print_msg("Set sync interval to 0");
+        wb_write(clk, ADR_SYNC_INTERVAL   , X"00000000", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
+        clk_delay(300);
+        
+        cpu_print_msg("Set sync interval back to default value (0x10)");
+        wb_write(clk, ADR_SYNC_INTERVAL   , X"00000010", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
         clk_delay(5);
         
-        cpu_print_msg("Set trigger abort to 0");
-        wb_write(clk, ADR_TOG_TRIG_ABORT   , X"00000000", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
+        cpu_print_msg("Set CMD enable to 1");
+        wb_write(clk, ADR_CMD_EN   , X"00000001", wb_cyc_i, wb_stb_i, wb_we_i, wb_adr_i, wb_dat_i); 
         clk_delay(5);
         
         cpu_print_msg("Generate trigger patterns");
