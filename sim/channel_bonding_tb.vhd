@@ -28,10 +28,10 @@ architecture Behavioral of channel_bonding_tb is
     port (
         clk             : in std_logic;
         -- Input
+        enable_i        : in std_logic;
         rx_data_i       : in rx_data_array(g_NUM_LANES-1 downto 0);
         rx_header_i     : in rx_header_array(g_NUM_LANES-1 downto 0);
         rx_valid_i      : in std_logic_vector(g_NUM_LANES-1 downto 0);
-        rx_stat_i       : in rx_status_array(g_NUM_LANES-1 downto 0);
         active_lanes_i  : in std_logic_vector(g_NUM_LANES-1 downto 0);
         rx_read_i       : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
@@ -43,21 +43,22 @@ architecture Behavioral of channel_bonding_tb is
     
     constant g_NUM_LANES : integer := 2;
     constant c_52_ZEROS : std_logic_vector(51 downto 0) := (others => '0');
-    constant c_CB_FRAME : std_logic_vector(63 downto 0) := c_AURORA_IDLE & "0001" & c_52_ZEROS;   
+    constant c_56_ZEROS : std_logic_vector(55 downto 0) := (others => '0');
+    constant c_CB_FRAME : std_logic_vector(63 downto 0) := c_AURORA_IDLE & "0001" & c_52_ZEROS; 
+    constant c_IDLE_FRAME : std_logic_vector(63 downto 0) := c_AURORA_IDLE & c_56_ZEROS;  
 
     signal clk_rx_i : std_logic := '0';    
     constant RX_CLK_PERIOD : time := 6.4ns; 
     
-    signal rx_cb_din : rx_data_array(g_NUM_LANES-1 downto 0);
-    signal rx_cb_header : rx_header_array(g_NUM_LANES-1 downto 0);
-    signal rx_cb_dvalid : std_logic_vector(g_NUM_LANES-1 downto 0);
-    signal rx_cb_status : rx_status_array(g_NUM_LANES-1 downto 0);
-    signal rx_cb_dout : rx_data_array(g_NUM_LANES-1 downto 0);
-    signal rx_cb_header_o : rx_header_array(g_NUM_LANES-1 downto 0);
-    signal rx_cb_dvalid_o : std_logic_vector(g_NUM_LANES-1 downto 0);
-    signal rx_empty_o : std_logic_vector(g_NUM_LANES-1 downto 0);
-    signal rx_read_i : std_logic_vector(g_NUM_LANES-1 downto 0);
-    signal counter : unsigned(1 downto 0) := "00";
+    signal cb_enable : std_logic;
+    signal cb_din : rx_data_array(g_NUM_LANES-1 downto 0);
+    signal cb_header : rx_header_array(g_NUM_LANES-1 downto 0);
+    signal cb_dvalid : std_logic_vector(g_NUM_LANES-1 downto 0);
+    signal cb_active_lanes : std_logic_vector(g_NUM_LANES-1 downto 0);
+    signal cb_read : std_logic_vector(g_NUM_LANES-1 downto 0);
+    signal cb_dout : rx_data_array(g_NUM_LANES-1 downto 0);
+    signal cb_empty : std_logic_vector(g_NUM_LANES-1 downto 0);
+    
     
 begin
 
@@ -73,46 +74,98 @@ begin
         generic map (g_NUM_LANES => 2)
         port map (
             clk             => clk_rx_i,
-            rx_data_i       => rx_cb_din,
-            rx_header_i     => rx_cb_header,
-            rx_valid_i      => rx_cb_dvalid,
-            rx_stat_i       => rx_cb_status,
-            active_lanes_i    => (others => '1'),
-            rx_read_i       => rx_read_i,
-            rx_data_o       => rx_cb_dout,
-            rx_empty_o      => rx_empty_o
+            enable_i        => cb_enable,
+            rx_data_i       => cb_din,
+            rx_header_i     => cb_header,
+            rx_valid_i      => cb_dvalid,
+            active_lanes_i  => cb_active_lanes,
+            rx_read_i       => cb_read,
+            rx_data_o       => cb_dout,
+            rx_empty_o      => cb_empty
     );
-    
-    pr_incr_cnt : process(clk_rx_i)
-    begin
-        if rising_edge(clk_rx_i) then
-            counter <= counter + 1;
-        end if;
-    end process;
 
-    pr_set_input : process(clk_rx_i)
+
+    pr_set_input : process
     begin
-        if rising_edge(clk_rx_i) then
-            if (counter = "00") then
-                rx_cb_din(0) <= c_CB_FRAME;
-                rx_cb_header(0) <= "10";
-                rx_cb_din(1) <= (others => '0');
-                rx_cb_header(1) <= "01";
-                rx_read_i <= "00";
-            elsif (counter = "01") then
-                rx_cb_din(0) <= (others => '0');
-                rx_cb_header(0) <= "01";
-                rx_cb_din(1) <= c_CB_FRAME;
-                rx_cb_header(1) <= "10";
-                rx_read_i <= "11";
-            else
-                rx_cb_din(0) <= (others => '1');
-                rx_cb_header(0) <= "01";
-                rx_cb_din(1) <= (others => '1');
-                rx_cb_header(0) <= "01";
-                rx_read_i <= "00";
-            end if;
-        end if;
+                    
+        cb_enable <= '1';
+        cb_dvalid <= "00";
+        cb_active_lanes <= "11";
+
+        cb_din(0) <= c_CB_FRAME;
+        cb_header(0) <= c_CMD_HEADER;
+        cb_din(1) <= c_IDLE_FRAME;
+        cb_header(1) <= c_CMD_HEADER;
+        cb_read <= "00";
+
+        wait for RX_CLK_PERIOD;
+
+        cb_dvalid <= "01";
+        cb_din(0) <= x"000000000000AAAA";
+        cb_header(0) <= c_DATA_HEADER;
+        cb_din(1) <= c_CB_FRAME;
+        cb_header(1) <= c_CMD_HEADER;
+
+        wait for RX_CLK_PERIOD;
+
+        cb_dvalid <= "10";
+        cb_din(0) <= x"000000000000AAAA";
+        cb_header(0) <= c_DATA_HEADER;
+        cb_din(1) <= x"000000000000AAAA";
+        cb_header(1) <= c_DATA_HEADER;
+
+        wait for RX_CLK_PERIOD;
+        cb_dvalid <= "00";
+        cb_read <= "01";
+        wait for RX_CLK_PERIOD;
+        cb_read <= "10";
+        wait for RX_CLK_PERIOD;
+        cb_read <= "00";
+        ------------------------------------------------
+        wait for 4 * RX_CLK_PERIOD;
+
+        cb_din(0) <= x"000000000000BBBB";
+        cb_din(1) <= x"000000000000AAAA";
+
+        wait for RX_CLK_PERIOD;
+
+        cb_din(0) <= x"000000000000BBBB";
+        cb_din(1) <= x"000000000000BBBB";
+        ------------------------------------------------
+        wait for 7 * RX_CLK_PERIOD;
+
+        cb_dvalid <= "01"; 
+        cb_din(0) <= x"000000000000CCCC";
+        cb_din(1) <= x"000000000000BBBB";
+
+        wait for RX_CLK_PERIOD;
+
+        cb_dvalid <= "10";
+        cb_din(0) <= x"000000000000CCCC";
+        cb_din(1) <= x"000000000000CCCC";
+
+        wait for RX_CLK_PERIOD;
+        cb_dvalid <= "00";
+        wait for RX_CLK_PERIOD;
+        cb_read <= "01";
+        wait for RX_CLK_PERIOD;
+        cb_read <= "10";
+        wait for RX_CLK_PERIOD;
+        cb_read <= "00";
+        
+        ------------------------------------------------
+        wait for 3 * RX_CLK_PERIOD;
+ 
+        cb_din(0) <= x"000000000000DDDD";
+        cb_din(1) <= x"000000000000CCCC";
+
+        wait for RX_CLK_PERIOD;
+
+        cb_din(0) <= x"000000000000DDDD";
+        cb_din(1) <= x"000000000000DDDD";
+        ------------------------------------------------
+        wait for 7 * RX_CLK_PERIOD;
+        
     end process;
                  
 end Behavioral;
