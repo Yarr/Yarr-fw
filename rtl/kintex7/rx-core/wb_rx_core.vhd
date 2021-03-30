@@ -155,18 +155,18 @@ architecture behavioral of wb_rx_core is
     COMPONENT ila_rx_dma_wb
     PORT (
         clk : IN STD_LOGIC;
-        probe0 : IN STD_LOGIC_VECTOR(1 DOWNTO 0); 
-        probe1 : IN STD_LOGIC_VECTOR(1 DOWNTO 0); 
+        probe0 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
+        probe1 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
         probe2 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
         probe3 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
-        probe4 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
-        probe5 : IN STD_LOGIC_VECTOR(63 DOWNTO 0);
+        probe4 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
+        probe5 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
 		probe6 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
         probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
         probe8 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
         probe9 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe10 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe11: IN STD_LOGIC_VECTOR(0 DOWNTO 0)
+        probe10 : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
+        probe11: IN STD_LOGIC_VECTOR(1 DOWNTO 0)
     );
     END COMPONENT  ;
 	
@@ -389,19 +389,19 @@ begin
 
 	wb_core_wr_debug : ila_rx_dma_wb
      PORT MAP (
-		clk => rx_clk_i,
+		clk => rx_clk_i,		
 		probe0 => (others => '0'),
-		probe1 => (others => '0'),
-		probe2 => (others => '0'),
-		probe3 => (others => '0'), 
-		probe4 => rx_fifo_din(0), 
-		probe5 => rx_fifo_din(1),
-		probe6(0) => rx_valid(0), 
-		probe7(0) => rx_valid(1),
-		probe8(0) => rx_fifo_wren(0),
-		probe9(0) => rx_fifo_wren(1),
-		probe10(0) => rx_enable_dd(0),
-		probe11(0) => rx_enable_dd(1)
+		probe1 => (others => '0'), 
+		probe2 => rx_fifo_din(0), 
+		probe3 => rx_fifo_din(1),
+		probe4(0) => rx_valid(0), 
+		probe5(0) => rx_valid(1),
+		probe6(0) => rx_fifo_wren(0),
+		probe7(0) => rx_fifo_wren(1),
+		probe8(0) => rx_enable_dd(0),
+		probe9(0) => rx_enable_dd(1),
+		probe10 => (others => '0'),
+		probe11 => (others => '0')
      );
 
 	-- wb_core_rd_debug : ila_rx_dma_wb
