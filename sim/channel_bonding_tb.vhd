@@ -89,7 +89,7 @@ begin
     begin
                     
         cb_enable <= '1';
-        cb_dvalid <= "11";
+        cb_dvalid <= "00";
         cb_active_lanes <= "11";
 
         cb_din(0) <= c_CB_FRAME;
@@ -100,6 +100,7 @@ begin
 
         wait for RX_CLK_PERIOD;
 
+        cb_dvalid <= "01";
         cb_din(0) <= x"000000000000AAAA";
         cb_header(0) <= c_DATA_HEADER;
         cb_din(1) <= c_CB_FRAME;
@@ -107,12 +108,14 @@ begin
 
         wait for RX_CLK_PERIOD;
 
+        cb_dvalid <= "10";
         cb_din(0) <= x"000000000000AAAA";
         cb_header(0) <= c_DATA_HEADER;
         cb_din(1) <= x"000000000000AAAA";
         cb_header(1) <= c_DATA_HEADER;
 
         wait for RX_CLK_PERIOD;
+        cb_dvalid <= "00";
         cb_read <= "01";
         wait for RX_CLK_PERIOD;
         cb_read <= "10";
@@ -121,13 +124,11 @@ begin
         ------------------------------------------------
         wait for 4 * RX_CLK_PERIOD;
 
-        cb_dvalid <= "10";
         cb_din(0) <= x"000000000000BBBB";
         cb_din(1) <= x"000000000000AAAA";
 
         wait for RX_CLK_PERIOD;
 
-        cb_dvalid <= "00";
         cb_din(0) <= x"000000000000BBBB";
         cb_din(1) <= x"000000000000BBBB";
         ------------------------------------------------
@@ -139,11 +140,13 @@ begin
 
         wait for RX_CLK_PERIOD;
 
-        cb_dvalid <= "11";
+        cb_dvalid <= "10";
         cb_din(0) <= x"000000000000CCCC";
         cb_din(1) <= x"000000000000CCCC";
 
-        wait for 2 * RX_CLK_PERIOD;
+        wait for RX_CLK_PERIOD;
+        cb_dvalid <= "00";
+        wait for RX_CLK_PERIOD;
         cb_read <= "01";
         wait for RX_CLK_PERIOD;
         cb_read <= "10";
@@ -152,14 +155,12 @@ begin
         
         ------------------------------------------------
         wait for 3 * RX_CLK_PERIOD;
-
-        cb_dvalid <= "10"; 
+ 
         cb_din(0) <= x"000000000000DDDD";
         cb_din(1) <= x"000000000000CCCC";
 
         wait for RX_CLK_PERIOD;
 
-        cb_dvalid <= "00";
         cb_din(0) <= x"000000000000DDDD";
         cb_din(1) <= x"000000000000DDDD";
         ------------------------------------------------

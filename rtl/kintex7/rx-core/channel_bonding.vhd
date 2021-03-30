@@ -135,7 +135,7 @@ begin
     -- b10 - 0x1E - 0x00 - 0x0000 - 0x00000000 - 0 bit data
     -- b10 - 0x78 - Flag[7:0] - 0xXXXX - 0xXXXXXXXX - Idle
     -- b10 - 0xB4 - D[55:0] - Register read (MM)
-    pr_filter : process(rx_header_b, rx_data_b)
+    pr_filter : process(rx_header_b, rx_data_b, rx_valid_b)
     begin
         for I in 0 to g_NUM_LANES-1 loop
             if (rx_header_b(I) = c_DATA_HEADER) then
@@ -160,17 +160,17 @@ begin
         end loop;
     end process;
 
-    --Set empty high if output data is not good to read, or once good data has been read
-    --Set empty low at beginning of new valid data
-    pr_set_empty : process(read_dd, valid_filtered, valid_filt_d) 
+    pr_set_empty : process(clk) 
     begin
-        for I in 0 to g_NUM_LANES-1 loop
-            if ((read_dd(I) = '1') or (valid_filtered(I) = '0')) then
-                empty(I) <= '1';
-            elsif ((valid_filtered(I) = '1') and (valid_filt_d(I) = '0')) then
-                empty(I) <= '0';
-            end if;
-        end loop;
+        if rising_edge(clk) then
+            for I in 0 to g_NUM_LANES-1 loop
+                if ((read_d(I) = '1') and (empty(I) = '0')) then
+                    empty(I) <= '1';
+                elsif (valid_filtered(I) = '1') then
+                    empty(I) <= '0';
+                end if;
+            end loop;
+        end if;
     end process;
 
     rx_empty_o <= empty;
