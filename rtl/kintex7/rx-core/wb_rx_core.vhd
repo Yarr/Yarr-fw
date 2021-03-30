@@ -122,7 +122,21 @@ architecture behavioral of wb_rx_core is
             rx_valid_o : out std_logic;
             rx_stat_o : out std_logic_vector(7 downto 0)
         );
-    end component aurora_rx_channel;
+	end component aurora_rx_channel;
+	
+	component handshake
+	generic (
+        g_WIDTH : integer := 1
+    );
+	port (
+		clk_s    : in std_logic;     --source clock
+        clk_d    : in std_logic;     --destination clock
+        rst_n    : in std_logic;     --active low reset
+        --Signal ports
+        di       : in std_logic_vector;
+        do       : out std_logic_vector
+	);
+	end component;
 	
 	COMPONENT rx_channel_fifo
 		PORT (
@@ -141,18 +155,18 @@ architecture behavioral of wb_rx_core is
     COMPONENT ila_rx_dma_wb
     PORT (
         clk : IN STD_LOGIC;
-        probe0 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+        probe0 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
         probe1 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
         probe2 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
-        probe3 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
+        probe3 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
         probe4 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe5 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe6 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe8 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
-        probe9 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
-        probe10 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-        probe11 : IN STD_LOGIC_VECTOR(0 DOWNTO 0)
+        probe5 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+		probe6 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
+        probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe8 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe9 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+        probe10 : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
+        probe11: IN STD_LOGIC_VECTOR(1 DOWNTO 0)
     );
     END COMPONENT  ;
 	
@@ -186,6 +200,12 @@ architecture behavioral of wb_rx_core is
 	signal channel : integer range 0 to g_NUM_RX-1;
 
 	signal debug : std_logic_vector(31 downto 0);
+
+	--Handshake signals
+	signal rx_enable_d_hs : std_logic_vector(31 downto 0);
+	signal rx_polarity_hs : std_logic_vector((g_NUM_RX*g_NUM_LANES)-1 downto 0);
+	signal rx_status_hs : std_logic_vector(31 downto 0);
+	signal rx_enable_dd_hs : std_logic_vector(31 downto 0);
 	
 begin
 	debug_o <= debug;
@@ -193,24 +213,6 @@ begin
 	debug(7 downto 0) <= rx_stat(0);
 	debug(15 downto 8) <= rx_data_raw(0);
 	debug(16) <= rx_valid(0);
-
---    wb_core_debug : ila_rx_dma_wb
---    PORT MAP (
---      clk => wb_clk_i,
---      probe0 => (others => '0'), 
---      probe1 => (others => '0'), 
---      probe2 => (others => '0'), 
---      probe3(0) => rx_fifo_empty(0),
---      probe4(0) => rx_fifo_empty(1),
---      probe5(0) => rx_enable_d(0), 
---      probe6(0) => rx_enable_d(1),
---      probe7(0) => '0',
---      probe8 => (others => '0'),
---      probe9(0) => '0',
---      probe10(0) => rx_fifo_rden_t(0),
---      probe11(0) => rx_fifo_rden_t(1)
---    );
-
 
     wb_proc: process (wb_clk_i, rst_n_i)
 	begin
@@ -240,7 +242,7 @@ begin
 						wb_dat_o <= rx_enable;
 						wb_ack_o <= '1';
                     elsif (wb_adr_i(3 downto 0) = x"1") then -- Link status
-                        wb_dat_o <= rx_status;
+                        wb_dat_o <= rx_status_hs;
                         wb_ack_o <= '1';
                     elsif (wb_adr_i(3 downto 0) = x"2") then -- RX polarity
                         wb_dat_o <= (others => '0');
@@ -254,13 +256,21 @@ begin
 			end if;
 		end if;
 	end process wb_proc;
+
+	--Handshake instantiations for status registers
+	--Source clk is wb_clk_i, destination clock is rx_clk_i:
+	hs1: handshake generic map(g_WIDTH => 32) 	port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_enable_d, do=>rx_enable_d_hs);
+	hs2: handshake generic map(g_WIDTH => g_NUM_RX*g_NUM_LANES) port map(clk_s=>wb_clk_i, clk_d=>rx_clk_i, rst_n=>rst_n_i, di=>rx_polarity, do=>rx_polarity_hs);
+	--Source clk is rx_clk_i, destination clock is wb_clk_i
+	hs3: handshake generic map(g_WIDTH => 32) 	port map(clk_s=>rx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>rx_status, do=>rx_status_hs);
+	hs4: handshake generic map(g_WIDTH => 32) 	port map(clk_s=>rx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>rx_enable_dd, do=>rx_enable_dd_hs);
 	
 	-- Arbiter
 	cmp_frr_arbiter : frr_arbiter port map (
 		clk_i => wb_clk_i,
 		rst_i => not rst_n_i,
 		req_i => not rx_fifo_empty_t,
-        en_i => rx_enable_dd(g_NUM_RX-1 downto 0), 
+        en_i => rx_enable_dd_hs(g_NUM_RX-1 downto 0), 
 		gnt_o => rx_fifo_rden_t
 	);
 	
@@ -317,9 +327,9 @@ begin
             rx_status <= (others => '0');
             rx_polarity_t <= (others => '0');
         elsif rising_edge(rx_clk_i) then
-            rx_enable_dd <= rx_enable_d;
+            rx_enable_dd <= rx_enable_d_hs;
             rx_status <= rx_status_s;
-            rx_polarity_t <= rx_polarity;
+            rx_polarity_t <= rx_polarity_hs;
         end if;
    end process enable_sync;
 	
@@ -376,5 +386,41 @@ begin
 			empty => rx_fifo_empty_t(I)
 		);
 	end generate;
+
+	wb_core_wr_debug : ila_rx_dma_wb
+     PORT MAP (
+		clk => rx_clk_i,		
+		probe0 => (others => '0'),
+		probe1 => (others => '0'), 
+		probe2 => rx_fifo_din(0), 
+		probe3 => rx_fifo_din(1),
+		probe4(0) => rx_valid(0), 
+		probe5(0) => rx_valid(1),
+		probe6(0) => rx_fifo_wren(0),
+		probe7(0) => rx_fifo_wren(1),
+		probe8(0) => rx_enable_dd(0),
+		probe9(0) => rx_enable_dd(1),
+		probe10 => (others => '0'),
+		probe11 => (others => '0')
+     );
+
+	-- wb_core_rd_debug : ila_rx_dma_wb
+    --  PORT MAP (
+	-- 	clk => wb_clk_i,
+	-- 	probe0 => (others => '0'),
+	-- 	probe1 => (others => '0'),
+	-- 	probe2 => (others => '0'),
+	-- 	probe3 => (others => '0'),
+	-- 	probe4 => rx_fifo_dout_t(0), 
+	-- 	probe5 => rx_fifo_dout_t(1), 
+	-- 	probe6(0) => rx_fifo_empty_t(0), 
+	-- 	probe7(0) => rx_fifo_empty_t(1),
+	-- 	probe8(0) => rx_fifo_rden_t(0),
+	-- 	probe9(0) => rx_fifo_rden_t(1),
+	-- 	probe10(0) => '0',
+	-- 	probe11(0) => '0'
+    --  );
+
+
 end behavioral;
 

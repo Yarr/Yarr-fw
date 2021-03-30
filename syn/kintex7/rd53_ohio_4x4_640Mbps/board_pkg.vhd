@@ -8,8 +8,8 @@ use work.hw_type_pkg.all;
 package board_pkg is
     constant c_FW_IDENT : std_logic_vector(31 downto 0) := c_HW_IDENT & x"030231";
     constant c_TX_ENCODING : string := "OSERDES";
-    constant c_TX_CHANNELS : integer := 4;
-    constant c_RX_CHANNELS : integer := 4;
+    constant c_TX_CHANNELS : integer := 2;
+    constant c_RX_CHANNELS : integer := 2;
     constant c_FE_TYPE : string := "RD53";
     constant c_RX_NUM_LANES : integer := 4;
     constant c_RX_SPEED : string := "0640";
