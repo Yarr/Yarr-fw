@@ -178,19 +178,19 @@ architecture behavioral of wb_tx_core is
         );
     end component;
     
---    component tx_core_ila is
---        port (
---            clk     : in std_logic;
---            probe0  : in std_logic;
---            probe1  : in std_logic;
---            probe2  : in std_logic_vector(31 downto 0);
---            probe3  : in std_logic;
---            probe4  : in std_logic;
---            probe5  : in std_logic;
---            probe6  : in std_logic;
---            probe7  : in std_logic
---        );
---    end component;
+    component tx_core_ila is
+        port (
+            clk     : in std_logic;
+            probe0  : in std_logic;
+            probe1  : in std_logic;
+            probe2  : in std_logic_vector(31 downto 0);
+            probe3  : in std_logic;
+            probe4  : in std_logic;
+            probe5  : in std_logic;
+            probe6  : in std_logic;
+            probe7  : in std_logic
+        );
+    end component;
 	
 	-- Signals
 	signal tx_data_cmd : std_logic_vector(g_NUM_TX-1 downto 0);
@@ -475,27 +475,47 @@ begin
 
 	--Handshake instantiations for status registers
 	--Source clk is wb, destination clock is tx:
-	hs1: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_enable, do=>tx_enable_hs);
-	hs2: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di(0)=>trig_en, do(0)=>trig_en_hs);
-	hs3: handshake generic map(g_WIDTH => 4) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_conf, do=>trig_conf_hs);
-	hs4: handshake generic map(g_WIDTH => 64) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_time, do=>trig_time_hs);
-	hs5: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_count, do=>trig_count_hs);
-	hs6: handshake generic map(g_WIDTH => 1024) 	port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word, do=>trig_word_hs);
-	hs7: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di(0)=>trig_abort, do(0)=>trig_abort_hs);
-	hs8: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_freq, do=>trig_freq_hs);
-	hs9: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word_length, do=>trig_word_lgth_hs);
-	hs10: handshake generic map(g_WIDTH => g_NUM_TX)	port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_polarity, do=>tx_polarity_hs);
-	hs11: handshake generic map(g_WIDTH => 32)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>pulse_word, do=>pulse_word_hs);
-	hs12: handshake generic map(g_WIDTH => 16)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>pulse_interval, do=>pulse_interval_hs);
-	hs13: handshake generic map(g_WIDTH => 32)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>sync_word, do=>sync_word_hs);
-	hs14: handshake generic map(g_WIDTH => 8)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>sync_interval, do=>sync_interval_hs);
-	hs15: handshake generic map(g_WIDTH => 32)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>idle_word, do=>idle_word_hs);
+	--hs1: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_enable, do=>tx_enable_hs);
+	tx_enable_hs <= tx_enable;
+	--hs2: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di(0)=>trig_en, do(0)=>trig_en_hs);
+	trig_en_hs <= trig_en;
+	--hs3: handshake generic map(g_WIDTH => 4) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_conf, do=>trig_conf_hs);
+	trig_conf_hs <= trig_conf;
+	--hs4: handshake generic map(g_WIDTH => 64) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_time, do=>trig_time_hs);
+	trig_time_hs <= trig_time;
+	--hs5: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_count, do=>trig_count_hs);
+	trig_count_hs <= trig_count;
+	--hs6: handshake generic map(g_WIDTH => 1024) 	port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word, do=>trig_word_hs);
+	trig_word_hs <= trig_word;
+	--hs7: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di(0)=>trig_abort, do(0)=>trig_abort_hs);
+	trig_abort_hs <= trig_abort;
+	--hs8: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_freq, do=>trig_freq_hs);
+	trig_freq_hs <= trig_freq;
+	--hs9: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_word_length, do=>trig_word_lgth_hs);
+	trig_word_lgth_hs <= trig_word_length;
+	--hs10: handshake generic map(g_WIDTH => g_NUM_TX)	port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>tx_polarity, do=>tx_polarity_hs);
+	tx_polarity_hs <= tx_polarity;
+	--hs11: handshake generic map(g_WIDTH => 32)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>pulse_word, do=>pulse_word_hs);
+	pulse_word_hs <= pulse_word;
+	--hs12: handshake generic map(g_WIDTH => 16)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>pulse_interval, do=>pulse_interval_hs);
+	pulse_interval_hs <= pulse_interval;
+	--hs13: handshake generic map(g_WIDTH => 32)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>sync_word, do=>sync_word_hs);
+	sync_word_hs <= sync_word;
+	--hs14: handshake generic map(g_WIDTH => 8)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>sync_interval, do=>sync_interval_hs);
+	sync_interval_hs <= sync_interval;
+	--hs15: handshake generic map(g_WIDTH => 32)		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>idle_word, do=>idle_word_hs);
+	idle_word_hs <= idle_word;
+	--hs19: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di=>trig_ext_interval, do=>trig_ext_interval_hs);
+	--hs20: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>wb_clk_i, clk_d=>tx_clk_i, rst_n=>rst_n_i, di(0)=>trig_code_gen_en, do(0)=>trig_code_gen_en_hs);
+	trig_ext_interval_hs <= trig_ext_interval;
+	trig_code_gen_en_hs <= trig_code_gen_en;
 	--Source clk is tx, destination clock is wb:
-	hs16: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>tx_empty, do=>tx_empty_hs);
-	hs17: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di(0)=>trig_done, do(0)=>trig_done_hs);
-	hs18: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_in_freq, do=>trig_in_freq_hs);
-	hs19: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_ext_interval, do=>trig_ext_interval_hs);
-	hs20: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di(0)=>trig_code_gen_en, do(0)=>trig_code_gen_en_hs);
+	--hs16: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>tx_empty, do=>tx_empty_hs);
+	tx_empty_hs <= tx_empty;
+	--hs17: handshake generic map(g_WIDTH => 1) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di(0)=>trig_done, do(0)=>trig_done_hs);
+	trig_done_hs <= trig_done;
+	--hs18: handshake generic map(g_WIDTH => 32) 		port map(clk_s=>tx_clk_i, clk_d=>wb_clk_i, rst_n=>rst_n_i, di=>trig_in_freq, do=>trig_in_freq_hs);
+    trig_in_freq_hs <= trig_in_freq;
 
 	tx_channels: for I in 0 to g_NUM_TX-1 generate
 	begin
@@ -597,17 +617,17 @@ begin
 	    code_ready_o => trig_code_ready
 	);
 	
---	cmp_tx_core_ila : tx_core_ila PORT MAP (
---	   clk    => tx_clk_i,
---	   probe0 => tx_trig_pulse,
---	   probe1 => trig_code_ready,
---	   probe2 => trig_code,
---	   probe3 => tx_data_cmd(0),
---	   probe4 => trig_en_hs,
---	   probe5 => trig_en,
---	   probe6 => '0',
---	   probe7 => '0'
---	);
+	cmp_tx_core_ila : tx_core_ila PORT MAP (
+	   clk    => tx_clk_i,
+	   probe0 => tx_trig_pulse,
+	   probe1 => trig_code_ready,
+	   probe2 => trig_code,
+	   probe3 => tx_data_cmd(0),
+	   probe4 => trig_code_gen_en_hs,
+	   probe5 => trig_code_gen_en,
+	   probe6 => '0',
+	   probe7 => '0'
+	);
     
     -- Create 1 tick per second for counter
     per_sec_proc : process(tx_clk_i, rst_n_i)
