@@ -177,20 +177,6 @@ architecture behavioral of wb_tx_core is
             code_ready_o : out std_logic
         );
     end component;
-    
-    component tx_core_ila is
-        port (
-            clk     : in std_logic;
-            probe0  : in std_logic;
-            probe1  : in std_logic;
-            probe2  : in std_logic_vector(31 downto 0);
-            probe3  : in std_logic;
-            probe4  : in std_logic;
-            probe5  : in std_logic;
-            probe6  : in std_logic;
-            probe7  : in std_logic
-        );
-    end component;
 	
 	-- Signals
 	signal tx_data_cmd : std_logic_vector(g_NUM_TX-1 downto 0);
@@ -615,18 +601,6 @@ begin
 	    pulse_i => ext_trig_pulse,
 	    code_o => trig_code,
 	    code_ready_o => trig_code_ready
-	);
-	
-	cmp_tx_core_ila : tx_core_ila PORT MAP (
-	   clk    => tx_clk_i,
-	   probe0 => tx_trig_pulse,
-	   probe1 => trig_code_ready,
-	   probe2 => trig_code,
-	   probe3 => tx_data_cmd(0),
-	   probe4 => trig_code_gen_en_hs,
-	   probe5 => trig_code_gen_en,
-	   probe6 => '0',
-	   probe7 => '0'
 	);
     
     -- Create 1 tick per second for counter
