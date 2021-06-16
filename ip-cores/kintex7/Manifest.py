@@ -29,6 +29,7 @@ files = [
 "fifo_605x32/fifo_605x32.xci",
 "fifo_29x32/fifo_29x32.xci",
 "fifo_8x32/fifo_8x32.xci",
+"ila_aurora/ila_aurora.xci",
 ]
 
 
