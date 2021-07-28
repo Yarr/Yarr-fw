@@ -28,29 +28,36 @@ end rr_arbiter;
 
 architecture behavioral of rr_arbiter is
 	signal req_t : std_logic_vector(g_CHANNELS-1 downto 0);
-	signal reqs : std_logic_vector(g_CHANNELS-1 downto 0);
-	signal gnt_t : std_logic_vector(g_CHANNELS-1 downto 0);
-	signal gnt : std_logic_vector(g_CHANNELS-1 downto 0);
-	signal gnts : std_logic_vector(g_CHANNELS-1 downto 0);
-	signal gnt_d : std_logic_vector(g_CHANNELS-1 downto 0);
+	signal masked_req : std_logic_vector(g_CHANNELS-1 downto 0);
+	signal winner : std_logic_vector(g_CHANNELS-1 downto 0);
+    signal isol_lsb : std_logic_vector(g_CHANNELS-1 downto 0);
+	signal new_winner : std_logic_vector(g_CHANNELS-1 downto 0);
+	signal old_winner : std_logic_vector(g_CHANNELS-1 downto 0);
 	
 begin
 	-- Tie offs
-	gnt_t <= gnts when (unsigned(reqs) /= 0) else gnt;
-	gnt <= req_t and(std_logic_vector(unsigned(not req_t)+1));
-	reqs <= req_t and not (std_logic_vector(unsigned(gnt_d)-1) or gnt_d);
-	gnts <= reqs and (std_logic_vector(unsigned(not reqs)+1));
+    winner <= new_winner when (unsigned(masked_req) /= 0) else isol_lsb;
+    
+    isol_lsb <= req_i and(std_logic_vector(unsigned(not req_i)+1));
+    masked_req <= req_i and not (std_logic_vector(unsigned(old_winner)-1) or old_winner);
+	new_winner <= masked_req and (std_logic_vector(unsigned(not masked_req)+1));
 	
+
 	sampling_proc : process(clk_i, rst_i)
 	begin
 		if (rst_i = '1') then
-			gnt_d <= (others => '0');
+			old_winner <= (others => '0');
 			gnt_o <= (others => '0');
 			req_t <= (others => '0');
 		elsif rising_edge(clk_i) then
-			gnt_d <= gnt_t;
-			gnt_o <= gnt_t;
-			req_t <= req_i;
+            req_t <= req_i;
+            if (unsigned(req_i) /= 0) then
+			    gnt_o <= winner;
+                old_winner <= winner;
+            else
+                gnt_o <= (others => '0');
+                old_winner <= (others => '0');
+            end if;
 		end if;
 	end process sampling_proc;
 
