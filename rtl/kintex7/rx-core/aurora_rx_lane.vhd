@@ -128,6 +128,7 @@ architecture behavioral of aurora_rx_lane is
     signal rst : std_logic;
 
     -- Serdes
+    signal serdes_phase_adj_en : std_logic;
     signal serdes_slip : std_logic;
     signal serdes_idelay_rdy : std_logic;
     signal serdes_data8 : std_logic_vector(7 downto 0);
@@ -469,6 +470,7 @@ begin
             scrambled_data66 <= (others => '0');
             scrambled_data_valid <= '0';
             gearbox_slip <= '0';
+            serdes_phase_adj_en <= '1';
         elsif rising_edge(clk_rx_i) then
             serdes_slip <= '0';
             scrambled_data_valid <= '0';
@@ -495,9 +497,11 @@ begin
                     valid_cnt <= (others => '0');
                 end if;
                 -- Output proc
+                serdes_phase_adj_en <= '1'; 
                 if (sync_cnt = c_SYNC_MAX) then
                     scrambled_data66 <= gearbox_data66(65 downto 0);
                     scrambled_data_valid <= '1';
+                    serdes_phase_adj_en <= '0'; -- Disable phase adjustment once locked
                 end if;
             end if;
         end if;
