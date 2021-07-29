@@ -365,17 +365,17 @@ begin
 --        );        
     end generate lane_loop;
     
-    aurora_channel_debug : ila_aurora
-    PORT MAP (
-      clk => clk_rx_i,
-      probe0 => rx_data_valid(3 downto 0), 
-      probe1 => rx_fifo_rden(3 downto 0),
-      probe2 => rx_bond_flag & "000", 
-      probe3 => rx_data_s,
-      probe4 => rx_data(0),
-      probe5 => rx_data(1), 
-      probe6 => rx_data(2),
-      probe7 => rx_data(3)
-    );
+--    aurora_channel_debug : ila_aurora
+--    PORT MAP (
+--      clk => clk_rx_i,
+--      probe0 => rx_data_valid(3 downto 0), 
+--      probe1 => rx_fifo_rden(3 downto 0),
+--      probe2 => rx_bond_flag & "000", 
+--      probe3 => rx_data_s,
+--      probe4 => rx_data(0),
+--      probe5 => rx_data(1), 
+--      probe6 => rx_data(2),
+--      probe7 => rx_data(3)
+--    );
     
 end behavioral;
