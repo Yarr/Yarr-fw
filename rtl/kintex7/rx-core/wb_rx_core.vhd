@@ -8,6 +8,9 @@
 -- # Adress Map:
 -- # Adr[3:0]:
 -- #     0x0 : RX Enable Mask
+-- #     0x1 : RX Sync Status
+-- #     0x2 : RX Polarity
+-- #     0x3 : RX Active Lanes
 
 
 library IEEE;
@@ -117,6 +120,7 @@ architecture behavioral of wb_rx_core is
             rx_data_i_n : in std_logic_vector(g_NUM_LANES-1 downto 0);
             rx_polarity_i : in std_logic_vector(g_NUM_LANES-1 downto 0);
             trig_tag_i : in std_logic_vector(63 downto 0);
+            rx_active_lanes_i : in std_logic_vector(3 downto 0);
             -- Output
             rx_data_o : out std_logic_vector(63 downto 0);
             rx_valid_o : out std_logic;
@@ -162,6 +166,7 @@ architecture behavioral of wb_rx_core is
     signal rx_data_i : std_logic_vector((g_NUM_RX*g_NUM_LANES)-1 downto 0);
     signal rx_polarity : std_logic_vector((g_NUM_RX*g_NUM_LANES)-1 downto 0);
     signal rx_polarity_t : std_logic_vector((g_NUM_RX*g_NUM_LANES)-1 downto 0);
+    signal rx_active_lanes_t : std_logic_vector(3 downto 0);
     signal rx_data : rx_data_array;
 	signal rx_valid : std_logic_vector(g_NUM_RX-1 downto 0);
 	signal rx_stat : rx_stat_array;
@@ -182,6 +187,8 @@ architecture behavioral of wb_rx_core is
 	signal rx_enable_dd : std_logic_vector(31 downto 0);
     signal rx_status : std_logic_vector(31 downto 0);
     signal rx_status_s : std_logic_vector(31 downto 0);
+
+    signal rx_active_lanes : std_logic_vector(3 downto 0); -- Max of 4-lanes
 	
 	signal channel : integer range 0 to g_NUM_RX-1;
 
@@ -221,6 +228,7 @@ begin
 			wb_stall_o <= '0';
 			rx_enable_d <= (others => '0');
             rx_polarity <= (others => '0');
+            rx_active_lanes <= (others => '1');
 		elsif rising_edge(wb_clk_i) then
 			wb_ack_o <= '0';
 			rx_enable_d <= rx_enable;
@@ -232,6 +240,9 @@ begin
 					elsif (wb_adr_i(3 downto 0) = x"2") then -- Set RX polarity
 						wb_ack_o <= '1';
 						rx_polarity <= wb_dat_i((g_NUM_RX*g_NUM_LANES)-1 downto 0);
+					elsif (wb_adr_i(3 downto 0) = x"3") then -- Set Num of active lanes
+						wb_ack_o <= '1';
+						rx_active_lanes <= wb_dat_i(3 downto 0);
 					else
 						wb_ack_o <= '1';
 					end if;
@@ -245,6 +256,10 @@ begin
                     elsif (wb_adr_i(3 downto 0) = x"2") then -- RX polarity
                         wb_dat_o <= (others => '0');
                         wb_dat_o((g_NUM_RX*g_NUM_LANES)-1 downto 0) <= rx_polarity;
+                        wb_ack_o <= '1';
+                    elsif (wb_adr_i(3 downto 0) = x"3") then -- Num of active lanes
+                        wb_dat_o <= (others => '0');
+                        wb_dat_o(3 downto 0) <= rx_active_lanes;
                         wb_ack_o <= '1';
 					else
 						wb_dat_o <= x"DEADBEEF";
@@ -316,10 +331,12 @@ begin
             rx_enable_dd <= (others => '0');
             rx_status <= (others => '0');
             rx_polarity_t <= (others => '0');
+            rx_active_lanes_t <= (others => '1');
         elsif rising_edge(rx_clk_i) then
             rx_enable_dd <= rx_enable_d;
             rx_status <= rx_status_s;
             rx_polarity_t <= rx_polarity;
+            rx_active_lanes_t <= rx_active_lanes;
         end if;
    end process enable_sync;
 	
@@ -352,6 +369,7 @@ begin
                 rx_data_i_p => rx_data_i_p((I+1)*g_NUM_LANES-1 downto (I*g_NUM_LANES)),
                 rx_data_i_n => rx_data_i_n((I+1)*g_NUM_LANES-1 downto (I*g_NUM_LANES)),
                 rx_polarity_i => rx_polarity_t((I+1)*g_NUM_LANES-1 downto (I*g_NUM_LANES)),
+                rx_active_lanes_i => rx_active_lanes_t,
                 trig_tag_i => x"00000000" & trig_tag_i,
                 rx_data_o => rx_data(I),
                 rx_valid_o => rx_valid(I),
