@@ -166,7 +166,6 @@ architecture behavioral of wb_rx_core is
     signal rx_data_i : std_logic_vector((g_NUM_RX*g_NUM_LANES)-1 downto 0);
     signal rx_polarity : std_logic_vector((g_NUM_RX*g_NUM_LANES)-1 downto 0);
     signal rx_polarity_t : std_logic_vector((g_NUM_RX*g_NUM_LANES)-1 downto 0);
-    signal rx_active_lanes_t : std_logic_vector(3 downto 0);
     signal rx_data : rx_data_array;
 	signal rx_valid : std_logic_vector(g_NUM_RX-1 downto 0);
 	signal rx_stat : rx_stat_array;
@@ -189,6 +188,7 @@ architecture behavioral of wb_rx_core is
     signal rx_status_s : std_logic_vector(31 downto 0);
 
     signal rx_active_lanes : std_logic_vector(3 downto 0); -- Max of 4-lanes
+    signal rx_active_lanes_t : std_logic_vector(3 downto 0);
 	
 	signal channel : integer range 0 to g_NUM_RX-1;
 

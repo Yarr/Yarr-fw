@@ -89,9 +89,9 @@ begin
         end process delay_proc;
 
         -- CB frames are transmitted at the same time on all lanes
-        is_cb_frame_t0(I) <= '1' when ((rx_header_t0(I) = c_CMD_HEADER) and (rx_data_t0(I)(63 downto 56) = c_AURORA_IDLE) and (rx_data_t0(I)(55 downto 52) = "0100")) else '0';
-        is_cb_frame_t1(I) <= '1' when ((rx_header_t1(I) = c_CMD_HEADER) and (rx_data_t1(I)(63 downto 56) = c_AURORA_IDLE) and (rx_data_t1(I)(55 downto 52) = "0100")) else '0';
-        is_cb_frame_t2(I) <= '1' when ((rx_header_t2(I) = c_CMD_HEADER) and (rx_data_t2(I)(63 downto 56) = c_AURORA_IDLE) and (rx_data_t2(I)(55 downto 52) = "0100")) else '0';
+        is_cb_frame_t0(I) <= '1' when ((rx_header_t0(I) = c_CMD_HEADER) and (rx_data_t0(I)(63 downto 56) = c_AURORA_IDLE) and (rx_data_t0(I)(55 downto 52) = "0100") and (active_lanes_i(I) = '1')) else '0';
+        is_cb_frame_t1(I) <= '1' when ((rx_header_t1(I) = c_CMD_HEADER) and (rx_data_t1(I)(63 downto 56) = c_AURORA_IDLE) and (rx_data_t1(I)(55 downto 52) = "0100") and (active_lanes_i(I) = '1')) else '0';
+        is_cb_frame_t2(I) <= '1' when ((rx_header_t2(I) = c_CMD_HEADER) and (rx_data_t2(I)(63 downto 56) = c_AURORA_IDLE) and (rx_data_t2(I)(55 downto 52) = "0100") and (active_lanes_i(I) = '1')) else '0';
 
         -- Output
         rx_data_o(I) <= rx_data_t1(I) when delay_lane(I) = '1' else
@@ -115,8 +115,7 @@ begin
             elsif rising_edge(clk_rx_i) then
                 if (rx_valid_i(0) = '1') then
                     if (((is_cb_frame_t0 or is_cb_frame_t1 or is_cb_frame_t2) = active_lanes_i) and
-                        ((is_cb_frame_t1 or is_cb_frame_t2) /= active_lanes_i) and
-                        (is_cb_frame_t0 /= c_ALL_ONES and is_cb_frame_t1 /= c_ALL_ONES) and
+                        is_cb_frame_t0 /= active_lanes_i and is_cb_frame_t1 /= active_lanes_i and
                         rx_bond = '0') then
                         delay_lane <= is_cb_frame_t1; -- Delay those lanes one cycle ahead
                         double_delay_lane <= is_cb_frame_t2; -- Double Delay those lanes two cycles ahead

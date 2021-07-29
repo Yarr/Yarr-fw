@@ -45,7 +45,7 @@ entity aurora_rx_channel is
         rx_data_i_n : in std_logic_vector(g_NUM_LANES-1 downto 0);
         rx_polarity_i : in std_logic_vector(g_NUM_LANES-1 downto 0);
         trig_tag_i : in std_logic_vector(63 downto 0);
-        rx_active_lanes_i : in std_logic_vector(3 downto 0);
+        rx_active_lanes_i : in std_logic_vector(g_NUM_LANES-1 downto 0);
 
         -- Output
         rx_data_o : out std_logic_vector(63 downto 0);
@@ -244,7 +244,7 @@ begin
     bond_cmp : aurora_ch_bond port map (
         rst_n_i => rst_n_i,
         clk_rx_i => clk_rx_i,
-        active_lanes_i => rx_active_lanes_i,
+        active_lanes_i => rx_active_lanes_i(g_NUM_LANES-1 downto 0),
         rx_data_i => rx_data_unbonded,
         rx_header_i => rx_header_unbonded,
         rx_valid_i => rx_data_valid_unbonded,
