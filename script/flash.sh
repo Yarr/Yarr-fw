@@ -86,11 +86,11 @@ then
     echo "Directory: $DIR"
     echo "File: $FILE"
 
-    URL="http://yarr.web.cern.ch/yarr/firmware/latest/"
+    URL="http://cern.ch/yarr/firmware/latest/"
 
     # Download
     mkdir -p Downloads
-    wget --backup=1 -P ./Downloads ${URL}${DIR}/${FILE}
+    wget --backups -P ./Downloads ${URL}${DIR}/${FILE}
 
     BITFILE=Downloads/${FILE}
 else
