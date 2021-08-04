@@ -259,7 +259,7 @@ begin
         if (rst_n_i = '0') then
             rx_lanes_ready <= '0';
         elsif rising_edge(clk_rx_i) then
-            if (rx_stat(7 downto 4) = rx_active_lanes_i) then
+            if (rx_stat(g_NUM_LANES-1+4 downto 4) = rx_active_lanes_i) then
                 if (rx_bond_flag = '1') then
                     rx_lanes_ready <= '1';
                 end if;
@@ -369,8 +369,8 @@ begin
 --    PORT MAP (
 --      clk => clk_rx_i,
 --      probe0 => rx_data_valid(3 downto 0), 
---      probe1 => rx_fifo_rden(3 downto 0),
---      probe2 => rx_bond_flag & "000", 
+--      probe1 => rx_fifo_rden(3 donto 0),
+--      probe2 => rx_fifo_empty_ungated(3 downto 0), 
 --      probe3 => rx_data_s,
 --      probe4 => rx_data(0),
 --      probe5 => rx_data(1), 
