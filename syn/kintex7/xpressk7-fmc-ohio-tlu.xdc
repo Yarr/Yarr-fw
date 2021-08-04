@@ -56,10 +56,10 @@ set_property PACKAGE_PIN H13 [get_ports {fe_clk_n[3]}]
 
 #la00_cc_n
 #la00_cc_p
-#set_property PACKAGE_PIN R22 [get_ports {eudet_rst_p}]
-#set_property PACKAGE_PIN R23 [get_ports {eudet_rst_n}]
-set_property PACKAGE_PIN R22 [get_ports {fe_data_p[15]}]
-set_property PACKAGE_PIN R23 [get_ports {fe_data_n[15]}]
+set_property PACKAGE_PIN R22 [get_ports {eudet_rst_p}]
+set_property PACKAGE_PIN R23 [get_ports {eudet_rst_n}]
+#set_property PACKAGE_PIN R22 [get_ports {fe_data_p[15]}]
+#set_property PACKAGE_PIN R23 [get_ports {fe_data_n[15]}]
 
 #la01_cc_n
 #la01_cc_p
@@ -68,21 +68,21 @@ set_property PACKAGE_PIN R23 [get_ports {fe_data_n[15]}]
 
 #la02_n
 #la02_p
-#set_property PACKAGE_PIN AB26 [get_ports {eudet_clk_p}]
-#set_property PACKAGE_PIN AC26 [get_ports {eudet_clk_n}]
+set_property PACKAGE_PIN AB26 [get_ports {eudet_clk_p}]
+set_property PACKAGE_PIN AC26 [get_ports {eudet_clk_n}]
 #set_property PACKAGE_PIN AB26 [get_ports {ext_busy_o_p}]
 #set_property PACKAGE_PIN AC26 [get_ports {ext_busy_o_n}]
-set_property PACKAGE_PIN AB26 [get_ports {fe_data_p[12]}]
-set_property PACKAGE_PIN AC26 [get_ports {fe_data_p[12]}]
+#set_property PACKAGE_PIN AB26 [get_ports {fe_data_p[12]}]
+#set_property PACKAGE_PIN AC26 [get_ports {fe_data_p[12]}]
 
 #la03_n
 #la03_p
-#set_property PACKAGE_PIN N26 [get_ports {eudet_trig_p}]
-#set_property PACKAGE_PIN M26 [get_ports {eudet_trig_n}]
+set_property PACKAGE_PIN N26 [get_ports {eudet_trig_p}]
+set_property PACKAGE_PIN M26 [get_ports {eudet_trig_n}]
 #set_property PACKAGE_PIN N26 [get_ports {ext_trig_i_p[0]}]
 #set_property PACKAGE_PIN M26 [get_ports {ext_trig_i_n[0]}]
-set_property PACKAGE_PIN N26 [get_ports {fe_data_p[14]}]
-set_property PACKAGE_PIN M26 [get_ports {fe_data_n[14]}]
+#set_property PACKAGE_PIN N26 [get_ports {fe_data_p[14]}]
+#set_property PACKAGE_PIN M26 [get_ports {fe_data_n[14]}]
 
 #la04_n
 #la04_p
@@ -360,10 +360,10 @@ set_property PACKAGE_PIN V22 [get_ports {fe_clk_n[3]}]
 
 #la08_n
 #la08_p
-#set_property PACKAGE_PIN K25 [get_ports {eudet_busy_p}]
-#set_property PACKAGE_PIN K26 [get_ports {eudet_busy_n}]
-set_property PACKAGE_PIN K25 [get_ports {fe_data_p[13]}]
-set_property PACKAGE_PIN K26 [get_ports {fe_data_n[13]}]
+set_property PACKAGE_PIN K25 [get_ports {eudet_busy_p}]
+set_property PACKAGE_PIN K26 [get_ports {eudet_busy_n}]
+#set_property PACKAGE_PIN K25 [get_ports {fe_data_p[13]}]
+#set_property PACKAGE_PIN K26 [get_ports {fe_data_n[13]}]
 
 #la09_n
 #la09_p
@@ -412,10 +412,7 @@ set_property SLEW FAST [get_ports fe_clk*]
 set_property IOSTANDARD LVDS_25 [get_ports fe_clk_*]
 set_property SLEW FAST [get_ports fe_clk*]
 
-#set_property IOSTANDARD DIFF_SSTL18_II [get_ports eudet_trig*]
-#set_property IOSTANDARD DIFF_SSTL18_II [get_ports eudet_clk*]
-#set_property IOSTANDARD DIFF_SSTL18_II [get_ports eudet_busy*]
-#set_property IOSTANDARD DIFF_SSTL18_II [get_ports eudet_rst*]
+set_property IOSTANDARD LVDS_25 [get_ports eudet_*]
 
 set_property IOSTANDARD LVDS_25 [get_ports ext_trig_*]
 set_property DIFF_TERM TRUE [get_ports ext_trig_*]
