@@ -19,5 +19,6 @@ package board_pkg is
     constant c_TX_AZ_WORD : std_logic_vector(31 downto 0) := x"00000000";
     constant c_TX_AZ_INTERVAL : unsigned(15 downto 0) := to_unsigned(500,16);
     constant c_TX_40_DIVIDER : unsigned(3 downto 0) := to_unsigned(4,4);
+    constant c_ENABLE_TLU : std_logic := '0';
 end board_pkg;
 

@@ -417,6 +417,7 @@ set_property SLEW FAST [get_ports fe_clk*]
 #set_property IOSTANDARD DIFF_SSTL18_II [get_ports eudet_busy*]
 #set_property IOSTANDARD DIFF_SSTL18_II [get_ports eudet_rst*]
 
+set_property IO_BUFFER_TYPE NONE [get_ports eudet_*]
 set_property IOSTANDARD LVDS_25 [get_ports ext_trig_*]
 set_property DIFF_TERM TRUE [get_ports ext_trig_*]
 set_property IOSTANDARD LVDS_25 [get_ports ext_busy_*]

@@ -72,14 +72,14 @@ entity top_level is
             --sda_io                : inout std_logic;
             --scl_io                    : inout std_logic;
             -- EUDET TLU
-            --eudet_trig_p : in std_logic;
-            --eudet_trig_n : in std_logic;
-            --eudet_busy_p : out std_logic;
-            --eudet_busy_n : out std_logic;
-            --eudet_rst_p : in std_logic;
-            --eudet_rst_n : in std_logic;
-            --eudet_clk_p : out std_logic;
-            --eudet_clk_n : out std_logic;
+            eudet_trig_p : in std_logic;
+            eudet_trig_n : in std_logic;
+            eudet_busy_p : out std_logic;
+            eudet_busy_n : out std_logic;
+            eudet_rst_p : in std_logic;
+            eudet_rst_n : in std_logic;
+            eudet_clk_p : out std_logic;
+            eudet_clk_n : out std_logic;
             -- SPI
             scl_o   : out std_logic;
             sda_o   : out std_logic;
@@ -397,10 +397,13 @@ begin
 --    );    
 
     -- EUDET buffer
-    --eudet_clk_buf : OBUFDS port map (O => eudet_clk_p, OB => eudet_clk_n, I => eudet_clk_s);
-    --eudet_busy_buf : OBUFDS port map (O => eudet_busy_p, OB => eudet_busy_n, I => eudet_busy_s);
-    --eudet_rst_buf : IBUFDS generic map(DIFF_TERM => TRUE, IBUF_LOW_PWR => FALSE) port map (O => eudet_rst_s, I => eudet_rst_p, IB => eudet_rst_n);
-    --eudet_trig_buf : IBUFDS generic map(DIFF_TERM => TRUE, IBUF_LOW_PWR => FALSE) port map (O => eudet_trig_s, I => eudet_trig_p, IB => eudet_trig_n);
+    tlu_buf : if c_ENABLE_TLU = '1' generate
+        eudet_clk_buf : OBUFDS port map (O => eudet_clk_p, OB => eudet_clk_n, I => eudet_clk_s);
+        eudet_busy_buf : OBUFDS port map (O => eudet_busy_p, OB => eudet_busy_n, I => eudet_busy_s);
+        eudet_rst_buf : IBUFDS generic map(DIFF_TERM => FALSE, IBUF_LOW_PWR => FALSE) port map (O => eudet_rst_s, I => eudet_rst_p, IB => eudet_rst_n);
+        eudet_trig_buf : IBUFDS generic map(DIFF_TERM => FALSE, IBUF_LOW_PWR => FALSE) port map (O => eudet_trig_s, I => eudet_trig_p, IB => eudet_trig_n);
+    end generate tlu_buf;
+
     -- HitOr
     --ext_trig_buf_0 : IBUFDS generic map (DIFF_TERM => TRUE, IBUF_LOW_PWR => FALSE) port map (O => ext_trig_i(0), I => ext_trig_i_p(0), IB => ext_trig_i_n(0));
     --ext_trig_buf_1 : IBUFDS generic map (DIFF_TERM => TRUE, IBUF_LOW_PWR => FALSE) port map (O => ext_trig_i(1), I => ext_trig_i_p(1), IB => ext_trig_i_n(1));
