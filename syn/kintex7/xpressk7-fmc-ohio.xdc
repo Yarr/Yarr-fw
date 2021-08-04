@@ -367,8 +367,7 @@ set_property PACKAGE_PIN K26 [get_ports {fe_data_n[13]}]
 
 #la09_n
 #la09_p
-set_property PACKAGE_PIN G22 [get_ports {fe_data_p[7]}]
-set_property PACKAGE_PIN F23 [get_ports {fe_data_n[7]}]
+
 #la13_n
 #la13_p
 set_property PACKAGE_PIN T20 [get_ports {sda_o}]
