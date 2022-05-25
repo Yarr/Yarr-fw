@@ -115,8 +115,10 @@ begin
                     dead_counter <= (others => '0');
                     if (sync_eudet_trig_t = '0' and simple_mode_i = '0') then
                         state <= RECEIVE;
+                        trig_o <= '1'; -- Trigger now
                     elsif (sync_eudet_trig_t = '0' and simple_mode_i = '1') then
                         state <= DEAD;
+                        trig_o <= '1'; -- Trigger now
                     end if;
 
                 when RECEIVE =>
@@ -141,9 +143,6 @@ begin
                     eudet_busy_t <= '1';
                     eudet_clk_t <= '0';
                     trig_o <= '0';
-                    if (dead_counter = 0) then
-                        trig_o <= '1'; -- Trigger now (16 clock cycles after the initial trigger?)
-                    end if;
                     dead_counter <= dead_counter + 1;
                     if (dead_counter >= unsigned(deadtime_t) and busy_i = '0') then
                         state <= IDLE;
