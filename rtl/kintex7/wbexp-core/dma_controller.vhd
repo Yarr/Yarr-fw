@@ -76,6 +76,7 @@ entity dma_controller is
       next_item_next_h_i       : in std_logic_vector(31 downto 0);
       next_item_attrib_i       : in std_logic_vector(31 downto 0);
       next_item_valid_i        : in std_logic;
+      sg_item_received_i       : in std_logic;
 
       ---------------------------------------------------------
       -- Wishbone slave interface
@@ -157,7 +158,24 @@ architecture behaviour of dma_controller is
       );
   end component dma_controller_wb_slave;
 
+  ------------------------------------------------------------------------------
+  -- linked list fifo component declaration
+  ------------------------------------------------------------------------------
 
+  component fifo_32x32 is
+    Port ( 
+      clk : in STD_LOGIC;
+      srst : in STD_LOGIC;
+      din : in STD_LOGIC_VECTOR ( 31 downto 0 );
+      wr_en : in STD_LOGIC;
+      rd_en : in STD_LOGIC;
+      dout : out STD_LOGIC_VECTOR ( 31 downto 0 );
+      full : out STD_LOGIC;
+      empty : out STD_LOGIC;
+      almost_empty : OUT STD_LOGIC
+    );
+  
+  end component fifo_32x32;
   ------------------------------------------------------------------------------
   -- Constants declaration
   ------------------------------------------------------------------------------
@@ -181,7 +199,7 @@ architecture behaviour of dma_controller is
   signal dma_nextl   : std_logic_vector(31 downto 0);
   signal dma_nexth   : std_logic_vector(31 downto 0);
   signal dma_attrib  : std_logic_vector(31 downto 0);
-
+    
   signal dma_ctrl_load    : std_logic;
   signal dma_stat_load    : std_logic;
   signal dma_cstart_load  : std_logic;
@@ -202,9 +220,30 @@ architecture behaviour of dma_controller is
   signal dma_nexth_reg   : std_logic_vector(31 downto 0);
   signal dma_attrib_reg  : std_logic_vector(31 downto 0);
 
+  -- linked list FIFO signals
+  signal dma_fifo_llist_in : std_logic_vector(223 downto 0);
+  signal dma_fifo_llist_out : std_logic_vector(223 downto 0);
+  signal dma_fifo_llist_wren : std_logic;
+  signal dma_fifo_llist_rden : std_logic;
+  signal dma_fifo_llist_full : std_logic_vector(6 downto 0);
+  signal dma_fifo_llist_empty : std_logic_vector(6 downto 0);
+  signal dma_fifo_llist_almost_empty : std_logic_vector(6 downto 0);
+  
+  signal dma_llist_wren_reg : std_logic;
+  
+  signal dma_cstart_out_s  : std_logic_vector(31 downto 0);
+  signal dma_hstartl_out_s : std_logic_vector(31 downto 0);
+  signal dma_hstarth_out_s : std_logic_vector(31 downto 0);
+  signal dma_len_out_s     : std_logic_vector(31 downto 0);
+  signal dma_nextl_out_s   : std_logic_vector(31 downto 0);
+  signal dma_nexth_out_s   : std_logic_vector(31 downto 0);
+  signal dma_attrib_out_s  : std_logic_vector(31 downto 0);
+  
+  signal dma_start_delay_s : std_logic_vector(1 downto 0);
+
   -- DMA controller FSM
   type dma_ctrl_state_type is (DMA_IDLE, DMA_START_TRANSFER, DMA_TRANSFER,
-                               DMA_START_CHAIN, DMA_CHAIN,
+                               DMA_START_CHAIN, DMA_CHAIN, DMA_FIFO_RD,
                                DMA_ERROR, DMA_ABORT);
   signal dma_ctrl_current_state : dma_ctrl_state_type;
 
@@ -212,22 +251,62 @@ architecture behaviour of dma_controller is
   signal dma_status    : std_logic_vector(2 downto 0);
   signal dma_error_irq : std_logic;
   signal dma_done_irq  : std_logic;
-
+  
+  signal fifo_rst : std_logic;
+  
+  -- Debug signals
+  signal dma_state_probe : std_logic_vector(2 downto 0);
+  signal item_count      : std_logic_vector(31 downto 0);
+  
 
 begin
+  
+  -- Creates an active high reset for fifos regardless of c_RST_ACTIVE value
+  gen_fifo_rst_n : if c_RST_ACTIVE = '0' generate
+    with dma_ctrl_reg(5) select fifo_rst <=
+    not(rst_n_i) when '0',
+    '1' when '1';
+  end generate;
+
+  gen_fifo_rst : if c_RST_ACTIVE = '1' generate
+    with dma_ctrl_reg(5) select fifo_rst <=
+    rst_n_i when '0',
+    '1' when '1';
+  end generate;
   
   dma_ctrl_do <= dma_ctrl;
   dma_stat_do <= dma_stat;
   dma_attrib_do <= dma_attrib;
   
-  with dma_ctrl_current_state select dma_ctrl_current_state_do <=
+  -- Selection of the linked list FIFO input between the register or the p2l signals
+  with dma_ctrl_reg(4) select dma_fifo_llist_in <=
+  dma_cstart_reg & dma_hstartl_reg & dma_hstarth_reg & dma_len_reg & dma_nextl_reg & dma_nexth_reg & dma_attrib_reg when '1',
+  next_item_carrier_addr_i & next_item_host_addr_l_i & next_item_host_addr_h_i & next_item_len_i & next_item_next_l_i 
+  & next_item_next_h_i & next_item_attrib_i when '0';
+
+  with dma_llist_wren_reg select dma_fifo_llist_wren <=
+  '1' when '1',
+  sg_item_received_i when '0';
+  
+  dma_cstart_out_s <= dma_fifo_llist_out(223 downto 192);
+  dma_hstartl_out_s <= dma_fifo_llist_out(191 downto 160);
+  dma_hstarth_out_s <= dma_fifo_llist_out(159 downto 128);
+  dma_len_out_s <= dma_fifo_llist_out(127 downto 96);
+  dma_nextl_out_s <= dma_fifo_llist_out(95 downto 64);
+  dma_nexth_out_s <= dma_fifo_llist_out(63 downto 32);
+  dma_attrib_out_s <= dma_fifo_llist_out(31 downto 0);
+
+  with dma_ctrl_current_state select dma_state_probe <=
     "000" when DMA_IDLE, 
     "001" when DMA_START_TRANSFER, 
     "010" when DMA_TRANSFER,
     "011" when DMA_START_CHAIN,
     "100" when DMA_CHAIN,
+    "101" when DMA_FIFO_RD,
     "110" when DMA_ERROR,
     "111" when DMA_ABORT;
+    
+  dma_ctrl_current_state_do <= dma_state_probe;
   ------------------------------------------------------------------------------
   -- Wishbone slave instanciation
   ------------------------------------------------------------------------------
@@ -273,6 +352,21 @@ begin
     );
 
 
+  fifo_llist_gen: for i in 0 to 6 generate
+    fifo_llist_instatiation : fifo_32x32
+      port map ( 
+        clk => clk_i,
+        srst => fifo_rst,
+        din => dma_fifo_llist_in((i+1)*32-1 downto i*32),
+        wr_en => dma_fifo_llist_wren,
+        rd_en => dma_fifo_llist_rden,
+        dout => dma_fifo_llist_out((i+1)*32-1 downto i*32),
+        full => dma_fifo_llist_full(i),
+        empty => dma_fifo_llist_empty(i),
+        almost_empty => dma_fifo_llist_almost_empty(i)
+      );
+  end generate fifo_llist_gen;
+
   ------------------------------------------------------------------------------
   -- DMA controller registers
   ------------------------------------------------------------------------------
@@ -288,6 +382,9 @@ begin
       dma_nextl_reg   <= (others => '0');
       dma_nexth_reg   <= (others => '0');
       dma_attrib_reg  <= (others => '0');
+      
+      dma_llist_wren_reg <= '0';
+      
     elsif rising_edge(clk_i) then
       -- Control register
       if (dma_ctrl_load = '1') then
@@ -324,20 +421,25 @@ begin
       if (dma_attrib_load = '1') then
         dma_attrib_reg <= dma_attrib;
       end if;
-      -- next item received => start a new transfer
-      if (next_item_valid_i = '1') then
-        dma_ctrl_reg(0) <= '1';
-        dma_cstart_reg  <= next_item_carrier_addr_i;
-        dma_hstartl_reg <= next_item_host_addr_l_i;
-        dma_hstarth_reg <= next_item_host_addr_h_i;
-        dma_len_reg     <= next_item_len_i;
-        dma_nextl_reg   <= next_item_next_l_i;
-        dma_nexth_reg   <= next_item_next_h_i;
-        dma_attrib_reg  <= next_item_attrib_i;
+      -- ctrl register indicate a write in the linked list FIFO is needed
+      if (dma_ctrl_reg(4) = '1') then
+        dma_llist_wren_reg <= '1';
       end if;
+      
+      -- Write enable 1 tick pulse
+      if (dma_llist_wren_reg = '1') then
+        dma_llist_wren_reg <= '0';
+        dma_ctrl_reg(4) <= '0';
+      end if;
+      
       -- Start DMA, 1 tick pulse
       if (dma_ctrl_reg(0) = '1') then
         dma_ctrl_reg(0) <= '0';
+      end if;
+      
+      -- Fifo reset 1 tick pulse
+      if (dma_ctrl_reg(5) = '1') then
+        dma_ctrl_reg(5) <= '0';
       end if;
     end if;
   end process p_regs;
@@ -367,12 +469,17 @@ begin
       dma_error_irq           <= '0';
       dma_done_irq            <= '0';
       dma_ctrl_abort_o        <= '0';
+      item_count              <= (others=>'0');
+      
+      dma_fifo_llist_rden <= '0';
+      
     elsif rising_edge(clk_i) then
       case dma_ctrl_current_state is
 
         when DMA_IDLE =>
           -- Clear done irq to make it 1 tick pulse
           dma_done_irq <= '0';
+          item_count <= (others=>'0');
 
           if(dma_ctrl_reg(0) = '1') then
             -- Starts a new transfer
@@ -382,25 +489,26 @@ begin
         when DMA_START_TRANSFER =>
           -- Clear abort signal
           dma_ctrl_abort_o <= '0';
+          item_count <= std_logic_vector(unsigned(item_count) + 1);
 
-          if (unsigned(dma_len_reg(31 downto 2)) = 0) then
+          if (unsigned(dma_len_out_s(31 downto 2)) = 0) then
             -- Requesting a DMA of 0 word length gives a error
             dma_error_irq          <= '1';
             dma_ctrl_current_state <= DMA_ERROR;
           else
             -- Start the DMA if the length is not 0
-            if (dma_attrib_reg(1) = '0') then
+            if (dma_attrib_out_s(1) = '0') then
               -- L2P transfer (from target to PCIe)
               dma_ctrl_start_l2p_o <= '1';
-            elsif (dma_attrib_reg(1) = '1') then
+            elsif (dma_attrib_out_s(1) = '1') then
               -- P2L transfer (from PCIe to target)
               dma_ctrl_start_p2l_o <= '1';
             end if;
             dma_ctrl_current_state  <= DMA_TRANSFER;
-            dma_ctrl_carrier_addr_o <= dma_cstart_reg;
-            dma_ctrl_host_addr_h_o  <= dma_hstarth_reg;
-            dma_ctrl_host_addr_l_o  <= dma_hstartl_reg;
-            dma_ctrl_len_o          <= dma_len_reg;
+            dma_ctrl_carrier_addr_o <= dma_cstart_out_s;
+            dma_ctrl_host_addr_h_o  <= dma_hstarth_out_s;
+            dma_ctrl_host_addr_l_o  <= dma_hstartl_out_s;
+            dma_ctrl_len_o          <= dma_len_out_s;
             dma_status              <= c_BUSY;
           end if;
 
@@ -418,9 +526,15 @@ begin
             dma_ctrl_current_state <= DMA_ERROR;
           elsif(dma_ctrl_done_i = '1') then
             -- End of DMA transfer
-            if(dma_attrib_reg(0) = '1') then
+            if(dma_attrib_out_s(0) = '1') then
               -- More transfer in chained DMA
-              dma_ctrl_current_state <= DMA_START_CHAIN;
+              if(dma_fifo_llist_almost_empty /= "000000") then
+                -- FIFO almost empty mean that we are reading the last data currently
+                dma_ctrl_current_state <= DMA_START_CHAIN;
+              else
+                dma_ctrl_current_state <= DMA_FIFO_RD;
+                dma_fifo_llist_rden     <= '1';
+              end if;
             else
               -- Was the last transfer
               dma_status             <= c_DONE;
@@ -428,18 +542,24 @@ begin
               dma_ctrl_current_state <= DMA_IDLE;
             end if;
           end if;
+        when DMA_FIFO_RD =>
+          dma_fifo_llist_rden <= '0';
+          dma_ctrl_current_state <= DMA_START_TRANSFER;
 
         when DMA_START_CHAIN =>
           -- Catch the next item in host memory
+          dma_fifo_llist_rden <= '1';
           dma_ctrl_current_state <= DMA_CHAIN;
-          dma_ctrl_host_addr_h_o <= dma_nexth_reg;
-          dma_ctrl_host_addr_l_o <= dma_nextl_reg;
+          dma_ctrl_host_addr_h_o <= dma_nexth_out_s;
+          dma_ctrl_host_addr_l_o <= dma_nextl_out_s;
           dma_ctrl_len_o         <= X"0000001C";
           dma_ctrl_start_next_o  <= '1';
+          
 
         when DMA_CHAIN =>
           -- Clear start next signal, to make it 1 tick pulse
           dma_ctrl_start_next_o <= '0';
+          dma_fifo_llist_rden <= '0';
 
           if (dma_ctrl_reg(1) = '1') then
             -- Transfer aborted
@@ -448,9 +568,15 @@ begin
             -- An error occurs !
             dma_error_irq          <= '1';
             dma_ctrl_current_state <= DMA_ERROR;
-          elsif (next_item_valid_i = '1') then
-            -- next item received
+          elsif (dma_start_delay_s = "10") then
+            -- after delay go to the start of the transfer
             dma_ctrl_current_state <= DMA_START_TRANSFER;
+            dma_start_delay_s <= "00"; 
+          elsif (dma_start_delay_s = "01") then
+            dma_start_delay_s <= "10"; 
+          elsif (next_item_valid_i = '1') then
+            -- next item received, add 2 clk cycle of delay to let the output of the fifo change in case it was empty
+            dma_start_delay_s <= "01";
           end if;
 
         when DMA_ERROR =>
@@ -461,6 +587,7 @@ begin
           if(dma_ctrl_reg(0) = '1') then
             -- Starts a new transfer
             dma_ctrl_current_state <= DMA_START_TRANSFER;
+            item_count <= (others=>'0');
           end if;
 
         when DMA_ABORT =>
@@ -470,6 +597,7 @@ begin
           if(dma_ctrl_reg(0) = '1') then
             -- Starts a new transfer
             dma_ctrl_current_state <= DMA_START_TRANSFER;
+            item_count <= (others=>'0');
           end if;
 
         when others =>
@@ -490,6 +618,34 @@ begin
     end if;
   end process p_fsm;
 
+  debug_linkedlist : ila_llist_fifo
+  PORT MAP (
+    clk => clk_i,
+  
+    probe0(0) => fifo_rst, 
+    probe1(0) => dma_fifo_llist_wren, 
+    probe2(0) => dma_fifo_llist_rden, 
+    probe3 => dma_fifo_llist_full, 
+    probe4 => dma_fifo_llist_empty, 
+    
+    probe5 => dma_fifo_llist_in,
+    
+    probe6 => dma_fifo_llist_out(223 downto 192), 
+    probe7 => dma_fifo_llist_out(191 downto 160), 
+    probe8 => dma_fifo_llist_out(159 downto 128), 
+    probe9 => dma_fifo_llist_out(127 downto 96), 
+    probe10 => dma_fifo_llist_out(95 downto 64), 
+    probe11 => dma_fifo_llist_out(63 downto 32),
+    probe12 => dma_fifo_llist_out(31 downto 0),
+    probe13(0) => sg_item_received_i,
+    probe14 => dma_state_probe,
+    probe15 => dma_ctrl_reg,
+    probe16 => dma_stat_reg,
+    probe17 => dma_attrib_reg,
+    probe18 => dma_fifo_llist_almost_empty,
+    probe19(0) => dma_ctrl_done_i,
+    probe20 => item_count,
+    probe21 => dma_start_delay_s
+  );
 
 end behaviour;
-

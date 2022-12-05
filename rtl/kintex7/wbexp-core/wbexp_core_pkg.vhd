@@ -198,6 +198,7 @@ package wshexp_core_pkg is
 		  next_item_next_h_i       : in std_logic_vector(31 downto 0);
 		  next_item_attrib_i       : in std_logic_vector(31 downto 0);
 		  next_item_valid_i        : in std_logic;
+		  sg_item_received_i       : in std_logic;
 
 		  ---------------------------------------------------------
 		  -- Wishbone slave interface
@@ -300,7 +301,8 @@ package wshexp_core_pkg is
 		  next_item_next_l_o       : out std_logic_vector(31 downto 0);
 		  next_item_next_h_o       : out std_logic_vector(31 downto 0);
 		  next_item_attrib_o       : out std_logic_vector(31 downto 0);
-		  next_item_valid_o        : out std_logic
+		  next_item_valid_o        : out std_logic;
+		  sg_item_received_o       : out std_logic
 		  );
 	end component;
 	
@@ -503,8 +505,56 @@ package wshexp_core_pkg is
     );
     END COMPONENT  ;
 -----------------------------------------------------------------------------
+    COMPONENT ila_llist_fifo
+    
+    PORT (
+      clk : IN STD_LOGIC;
+    
+      probe0 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
+      probe1 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
+      probe2 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
+      probe3 : IN STD_LOGIC_VECTOR(6 DOWNTO 0); 
+      probe4 : IN STD_LOGIC_VECTOR(6 DOWNTO 0); 
+      probe5 : IN STD_LOGIC_VECTOR(223 DOWNTO 0); 
+      probe6 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe7 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe8 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe9 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe10 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe11 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe12 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe13 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
+      probe14 : IN STD_LOGIC_VECTOR(2 DOWNTO 0); 
+      probe15 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe16 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe17 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe18 : IN STD_LOGIC_VECTOR(6 DOWNTO 0);
+      probe19 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+      probe20 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+      probe21 : IN STD_LOGIC_VECTOR(1 DOWNTO 0)
 
+    );
+    END COMPONENT  ;
 
+    COMPONENT ila_l2p
+    
+    PORT (
+      clk : IN STD_LOGIC;
+    
+    
+      probe0 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
+      probe1 : IN STD_LOGIC_VECTOR(2 DOWNTO 0); 
+      probe2 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
+      probe3 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe4 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe5 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe6 : IN STD_LOGIC_VECTOR(31 DOWNTO 0); 
+      probe7 : IN STD_LOGIC_VECTOR(0 DOWNTO 0); 
+      probe8 : IN STD_LOGIC_VECTOR(63 DOWNTO 0); 
+      probe9 : IN STD_LOGIC_VECTOR(12 DOWNTO 0);
+      probe10 : IN STD_LOGIC_VECTOR(12 DOWNTO 0)
+    );
+    END COMPONENT  ;
 
 end wshexp_core_pkg;
 

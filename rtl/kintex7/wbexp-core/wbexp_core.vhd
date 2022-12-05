@@ -64,9 +64,9 @@ entity wshexp_core is
         csr_adr_o   : out std_logic_vector(31 downto 0);  --! CSR Wishbone Bus: Address
         csr_dat_o   : out std_logic_vector(31 downto 0);  --! CSR Wishbone Bus: Data out
         csr_sel_o   : out std_logic_vector(3 downto 0);   --! CSR Wishbone Bus: Byte select
-        csr_stb_o   : out std_logic;                      --! CSR Wishbone Bus: Read or write cycle
+        csr_stb_o   : out std_logic;                      --! CSR Wishbone Bus: Read or write strobe
         csr_we_o    : out std_logic;                      --! CSR Wishbone Bus: Write enable
-        csr_cyc_o   : out std_logic;                      --! CSR Wishbone Bus: Read or write strobe
+        csr_cyc_o   : out std_logic;                      --! CSR Wishbone Bus: Read or write cycle
         csr_dat_i   : in  std_logic_vector(31 downto 0);  --! CSR Wishbone Bus: Data in
         csr_ack_i   : in  std_logic;                      --! CSR Wishbone Bus: Acknoledge
         csr_stall_i : in  std_logic;                      --! CSR Wishbone Bus: for pipelined Wishbone
@@ -232,6 +232,7 @@ architecture Behavioral of wshexp_core is
     signal next_item_next_h_s       : std_logic_vector(31 downto 0);
     signal next_item_attrib_s       : std_logic_vector(31 downto 0);
     signal next_item_valid_s        : std_logic;
+    signal sg_item_received_s       : std_logic;
     
     ---------------------------------------------------------
     -- From L2P DMA master (ldm) to arbiter (arb)
@@ -502,7 +503,8 @@ begin
 		  next_item_next_l_o       => next_item_next_l_s,
 		  next_item_next_h_o       => next_item_next_h_s,
 		  next_item_attrib_o       => next_item_attrib_s,
-		  next_item_valid_o        => next_item_valid_s
+		  next_item_valid_o        => next_item_valid_s,
+		  sg_item_received_o       => sg_item_received_s
 		  );
 
 
@@ -608,6 +610,7 @@ begin
           next_item_next_h_i       => next_item_next_h_s,
           next_item_attrib_i       => next_item_attrib_s,
           next_item_valid_i        => next_item_valid_s,
+          sg_item_received_i       => sg_item_received_s,
 
           ---------------------------------------------------------
           -- Wishbone slave interface

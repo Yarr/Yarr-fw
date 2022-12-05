@@ -126,7 +126,8 @@ entity p2l_dma_master is
       next_item_next_l_o       : out std_logic_vector(31 downto 0);
       next_item_next_h_o       : out std_logic_vector(31 downto 0);
       next_item_attrib_o       : out std_logic_vector(31 downto 0);
-      next_item_valid_o        : out std_logic
+      next_item_valid_o        : out std_logic;
+      sg_item_received_o       : out std_logic
       );
 end p2l_dma_master;
 
@@ -193,6 +194,19 @@ architecture behaviour of p2l_dma_master is
   signal p2l_data_cnt          : unsigned(10 downto 0);
   --signal p2l_data_cnt_1          : unsigned(10 downto 0);
 
+  -- registers to the DMA controller
+  signal next_item_carrier_addr_reg : std_logic_vector(31 downto 0);
+  signal next_item_host_addr_h_reg  : std_logic_vector(31 downto 0);
+  signal next_item_host_addr_l_reg  : std_logic_vector(31 downto 0);
+  signal next_item_len_reg          : std_logic_vector(31 downto 0);
+  signal next_item_next_l_reg       : std_logic_vector(31 downto 0);
+  signal next_item_next_h_reg       : std_logic_vector(31 downto 0);
+  signal next_item_attrib_reg       : std_logic_vector(31 downto 0);
+  signal next_item_valid_reg        : std_logic;
+  
+  signal sg_item_received_s         : std_logic;
+
+  signal p2l_data_cnt_mod : std_logic_vector(2 downto 0);
 
 begin
 
@@ -211,7 +225,6 @@ begin
 
   -- Errors to DMA controller
   dma_ctrl_error_o <= dma_busy_error or completion_error;
-
   ------------------------------------------------------------------------------
   -- PCIe read request
   ------------------------------------------------------------------------------
@@ -461,6 +474,7 @@ begin
   ------------------------------------------------------------------------------
   -- Next DMA item retrieve
   ------------------------------------------------------------------------------
+  
   p_next_item : process (clk_i, rst_n_i)
   begin
     if (rst_n_i = c_RST_ACTIVE) then
@@ -471,6 +485,7 @@ begin
       next_item_next_l_o       <= (others => '0');
       next_item_next_h_o       <= (others => '0');
       next_item_attrib_o       <= (others => '0');
+      sg_item_received_s <= '0';
     elsif rising_edge(clk_i) then
       --p2l_data_cnt_1 <= p2l_data_cnt;
       if (p2l_dma_current_state = P2L_WAIT_READ_COMPLETION
@@ -495,15 +510,24 @@ begin
           when "0010" =>
             if pd_pdm_data_valid_w_i(1) = '1' then next_item_attrib_o <= pd_pdm_data_i(63 downto 32); end if; -- 6
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_next_h_o <= pd_pdm_data_i(31 downto 0); end if; -- 5
+            sg_item_received_s <= '1';
           when "0001" =>
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_attrib_o <= pd_pdm_data_i(31 downto 0); end if; -- 6
+            sg_item_received_s <= '1';
           when others =>
             null;
         end case;
       end if;
+
+      -- Make the sg_item_received_s signal a one clock pulse
+      if (sg_item_received_s = '1') then
+        sg_item_received_s <='0';
+      end if;
+
     end if;
   end process p_next_item;
 
+  sg_item_received_o <= sg_item_received_s;
   ------------------------------------------------------------------------------
   -- Target address counter
   ------------------------------------------------------------------------------
@@ -669,3 +693,4 @@ begin
       
 
 end behaviour;
+

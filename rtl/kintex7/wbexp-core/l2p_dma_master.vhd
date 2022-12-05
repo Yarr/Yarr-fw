@@ -129,6 +129,7 @@ architecture behavioral of l2p_dma_master is
     ---------------------
     signal fifo_rst        : std_logic;
     signal fifo_rst_t      : std_logic;
+    
 	
 	-- Axi-Stream
 	--signal ldm_arb_tready_s: std_logic;
@@ -173,7 +174,7 @@ architecture behavioral of l2p_dma_master is
     --signal ldm_arb_data_32 : std_logic_vector(axis_data_width_c-1 downto 0);
     signal ldm_arb_valid   : std_logic;
     
-    signal data_fifo_valid : std_logic;
+    signal data_fifo_valid : std_logic; -- never used
     signal addr_fifo_valid : std_logic;
     
     signal byte_swap_c : STD_LOGIC_VECTOR (1 downto 0);
@@ -194,6 +195,8 @@ architecture behavioral of l2p_dma_master is
 	signal wb_cyc_start    : std_logic;
 	signal l2p_cyc_cnt     : unsigned(12 downto 0);
 	signal wb_cyc_cnt	   : unsigned(12 downto 0);
+	
+	signal l2p_current_state_s : std_logic_vector(2 downto 0);
 
 begin    
     --DEBUG
@@ -202,7 +205,9 @@ begin
     l2p_timeout_cnt_do <= l2p_timeout_cnt;
     wb_timeout_cnt_do  <= wb_timeout_cnt;
     
-    with l2p_dma_current_state select l2p_current_state_do <=
+    l2p_current_state_do <= l2p_current_state_s;
+    
+    with l2p_dma_current_state select l2p_current_state_s <=
       "000" when L2P_IDLE, 
       "001" when L2P_SETUP, 
       "010" when L2P_HEADER_0,
@@ -449,7 +454,7 @@ begin
             l2p_last_packet <= '0';
         elsif rising_edge(clk_i) then
             if (l2p_dma_current_state = L2P_IDLE) then
-                l2p_len_cnt <= unsigned(dma_ctrl_len_i(15 downto 3)); -- That's it 
+                l2p_len_cnt <= unsigned(dma_ctrl_len_i(15 downto 3)); -- That's it
                 l2p_address_h <= dma_ctrl_host_addr_h_i;
                 l2p_address_l <= dma_ctrl_host_addr_l_i;
                 l2p_byte_swap <= dma_ctrl_byte_swap_i;
@@ -650,5 +655,25 @@ begin
         valid => open,
         prog_full => data_fifo_full
     );
+
+  debug_l2p : ila_l2p
+  PORT MAP (
+    clk => clk_i,
+    probe0(0) => rst_n_i,
+    
+    probe1 => l2p_current_state_s, 
+    probe2(0) => dma_ctrl_start_l2p_i, 
+    probe3 => dma_ctrl_target_addr_i,
+    probe4 => dma_ctrl_host_addr_h_i, 
+    
+    probe5 => dma_ctrl_host_addr_l_i,
+    probe6 => dma_ctrl_len_i,
+    probe7(0) => ldm_arb_valid,
+    probe8 => ldm_arb_data_l,
+    probe9 => std_logic_vector(l2p_len_cnt),
+    
+    probe10 => std_logic_vector(l2p_data_cnt)
+    
+  );
 
 end behavioral;

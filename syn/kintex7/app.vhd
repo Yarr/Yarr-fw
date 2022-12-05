@@ -45,7 +45,7 @@ entity app is
         axis_rx_tuser_width_c : integer := 22;
         wb_address_width_c : integer := 32;
         wb_data_width_c : integer := 32;
-        DEBUG_C : std_logic_vector(3 downto 0) := "0000";
+        DEBUG_C : std_logic_vector(3 downto 0) := "0010";
         address_mask_c : STD_LOGIC_VECTOR(32-1 downto 0) := X"000FFFFF";
         DMA_MEMORY_SELECTED : string := "DDR3" -- DDR3, BRAM
         );
