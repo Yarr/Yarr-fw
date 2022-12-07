@@ -528,7 +528,7 @@ begin
             -- End of DMA transfer
             if(dma_attrib_out_s(0) = '1') then
               -- More transfer in chained DMA
-              if(dma_fifo_llist_almost_empty /= "000000") then
+              if(dma_fifo_llist_almost_empty /= "0000000") then
                 -- FIFO almost empty mean that we are reading the last data currently
                 dma_ctrl_current_state <= DMA_START_CHAIN;
               else
@@ -540,6 +540,7 @@ begin
               dma_status             <= c_DONE;
               dma_done_irq           <= '1';
               dma_ctrl_current_state <= DMA_IDLE;
+              dma_fifo_llist_rden     <= '1';
             end if;
           end if;
         when DMA_FIFO_RD =>
@@ -552,7 +553,11 @@ begin
           dma_ctrl_current_state <= DMA_CHAIN;
           dma_ctrl_host_addr_h_o <= dma_nexth_out_s;
           dma_ctrl_host_addr_l_o <= dma_nextl_out_s;
-          dma_ctrl_len_o         <= X"0000001C";
+          if(unsigned(dma_attrib_out_s(17 downto 2)) > 32) then
+            dma_ctrl_len_o <= X"00000380"; -- FIFO size * item size (32*28)
+          else
+            dma_ctrl_len_o         <= std_logic_vector(unsigned(dma_attrib_out_s(17 downto 2))*28);
+          end if;
           dma_ctrl_start_next_o  <= '1';
           
 

@@ -195,18 +195,19 @@ architecture behaviour of p2l_dma_master is
   --signal p2l_data_cnt_1          : unsigned(10 downto 0);
 
   -- registers to the DMA controller
-  signal next_item_carrier_addr_reg : std_logic_vector(31 downto 0);
-  signal next_item_host_addr_h_reg  : std_logic_vector(31 downto 0);
-  signal next_item_host_addr_l_reg  : std_logic_vector(31 downto 0);
-  signal next_item_len_reg          : std_logic_vector(31 downto 0);
-  signal next_item_next_l_reg       : std_logic_vector(31 downto 0);
-  signal next_item_next_h_reg       : std_logic_vector(31 downto 0);
-  signal next_item_attrib_reg       : std_logic_vector(31 downto 0);
-  signal next_item_valid_reg        : std_logic;
+--  signal next_item_carrier_addr_reg : std_logic_vector(31 downto 0);
+--  signal next_item_host_addr_h_reg  : std_logic_vector(31 downto 0);
+--  signal next_item_host_addr_l_reg  : std_logic_vector(31 downto 0);
+--  signal next_item_len_reg          : std_logic_vector(31 downto 0);
+--  signal next_item_next_l_reg       : std_logic_vector(31 downto 0);
+--  signal next_item_next_h_reg       : std_logic_vector(31 downto 0);
+--  signal next_item_attrib_reg       : std_logic_vector(31 downto 0);
+  
+  signal next_item_carrier_addr_temp : std_logic_vector(31 downto 0);
   
   signal sg_item_received_s         : std_logic;
 
-  signal p2l_data_cnt_mod : std_logic_vector(2 downto 0);
+  signal p2l_data_cnt_mod : std_logic_vector(10 downto 0);
 
 begin
 
@@ -222,6 +223,9 @@ begin
   gen_fifo_rst : if c_RST_ACTIVE = '1' generate
     fifo_rst_n <= not(rst_n_i);
   end generate;
+
+  -- Modulo of the data count 
+  p2l_data_cnt_mod <= std_logic_vector(unsigned(p2l_data_cnt) mod 7);
 
   -- Errors to DMA controller
   dma_ctrl_error_o <= dma_busy_error or completion_error;
@@ -491,28 +495,30 @@ begin
       if (p2l_dma_current_state = P2L_WAIT_READ_COMPLETION
           and is_next_item = '1' and (pd_pdm_data_valid_w_i(0) = '1' or pd_pdm_data_valid_w_i(1) = '1')) then
         -- next item data are supposed to be received in the rigth order !!
-        case p2l_data_cnt(3 downto 0) is
-          when "0111" =>
+        case p2l_data_cnt_mod(2 downto 0) is
+          when "000" =>
             if pd_pdm_data_valid_w_i(1) = '1' then next_item_host_addr_l_o <= pd_pdm_data_i(63 downto 32); end if; -- 1
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_carrier_addr_o <= pd_pdm_data_i(31 downto 0); end if; -- 0
-          when "0110" =>
+          when "110" =>
             if pd_pdm_data_valid_w_i(1) = '1' then next_item_host_addr_h_o <= pd_pdm_data_i(63 downto 32); end if; -- 2
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_host_addr_l_o <= pd_pdm_data_i(31 downto 0); end if; -- 1
-          when "0101" =>
+          when "101" =>
             if pd_pdm_data_valid_w_i(1) = '1' then next_item_len_o <= pd_pdm_data_i(63 downto 32); end if; -- 3
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_host_addr_h_o <= pd_pdm_data_i(31 downto 0); end if; -- 2
-          when "0100" =>  
+          when "100" =>  
             if pd_pdm_data_valid_w_i(1) = '1' then next_item_next_l_o <= pd_pdm_data_i(63 downto 32); end if; -- 4
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_len_o <= pd_pdm_data_i(31 downto 0); end if; -- 3
-          when "0011" =>
+          when "011" =>
             if pd_pdm_data_valid_w_i(1) = '1' then next_item_next_h_o <= pd_pdm_data_i(63 downto 32); end if; -- 5
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_next_l_o <= pd_pdm_data_i(31 downto 0); end if; -- 4
-          when "0010" =>
+          when "010" =>
             if pd_pdm_data_valid_w_i(1) = '1' then next_item_attrib_o <= pd_pdm_data_i(63 downto 32); end if; -- 6
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_next_h_o <= pd_pdm_data_i(31 downto 0); end if; -- 5
             sg_item_received_s <= '1';
-          when "0001" =>
+          when "001" =>
+            if pd_pdm_data_valid_w_i(1) = '1' then next_item_carrier_addr_temp <= pd_pdm_data_i(63 downto 32); end if; -- 0
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_attrib_o <= pd_pdm_data_i(31 downto 0); end if; -- 6
+            
             sg_item_received_s <= '1';
           when others =>
             null;
@@ -522,11 +528,13 @@ begin
       -- Make the sg_item_received_s signal a one clock pulse
       if (sg_item_received_s = '1') then
         sg_item_received_s <='0';
+        
+        -- Needed if the new carrier address is received before the old one is latched into the FIFO
+        next_item_carrier_addr_o <= next_item_carrier_addr_temp;
       end if;
 
     end if;
   end process p_next_item;
-
   sg_item_received_o <= sg_item_received_s;
   ------------------------------------------------------------------------------
   -- Target address counter
