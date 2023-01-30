@@ -47,7 +47,8 @@ use work.common_pkg.all;
 entity p2l_dma_master is
   generic (
     -- Enable byte swap module (if false, no swap)
-    g_BYTE_SWAP : boolean := false
+    g_BYTE_SWAP : boolean := false;
+    DEBUG_C : std_logic
     );
   port
     (
@@ -191,17 +192,14 @@ architecture behaviour of p2l_dma_master is
   -- P2L DMA read request FSM
   type   p2l_dma_state_type is (P2L_IDLE, P2L_HEADER, P2L_HEADER_1, P2L_HEADER_2, P2L_WAIT_READ_COMPLETION);
   signal p2l_dma_current_state : p2l_dma_state_type;
+  signal p2l_dma_state_s       : std_logic_vector(2 downto 0); -- for debug purpose      
   signal p2l_data_cnt          : unsigned(10 downto 0);
-  --signal p2l_data_cnt_1          : unsigned(10 downto 0);
 
-  -- registers to the DMA controller
---  signal next_item_carrier_addr_reg : std_logic_vector(31 downto 0);
---  signal next_item_host_addr_h_reg  : std_logic_vector(31 downto 0);
---  signal next_item_host_addr_l_reg  : std_logic_vector(31 downto 0);
---  signal next_item_len_reg          : std_logic_vector(31 downto 0);
---  signal next_item_next_l_reg       : std_logic_vector(31 downto 0);
---  signal next_item_next_h_reg       : std_logic_vector(31 downto 0);
---  signal next_item_attrib_reg       : std_logic_vector(31 downto 0);
+  -- for debug reason
+  signal p2l_dma_adr_s         : std_logic_vector(31 downto 0);  -- Adress
+  signal p2l_dma_dat_s         : std_logic_vector(63 downto 0);  -- Data in
+  signal p2l_dma_sel_s         : std_logic_vector(7 downto 0);   -- Byte select
+  signal p2l_dma_cyc_s         : std_logic;                      -- Read or write cycle
   
   signal next_item_carrier_addr_temp : std_logic_vector(31 downto 0);
   
@@ -211,7 +209,20 @@ architecture behaviour of p2l_dma_master is
 
 begin
 
-
+  -------------------------
+  -- Debug signals
+  -------------------------
+    with p2l_dma_current_state select p2l_dma_state_s <=
+      "000" when P2L_IDLE, 
+      "001" when P2L_HEADER, 
+      "010" when P2L_HEADER_1,
+      "011" when P2L_HEADER_2,
+      "100" when P2L_WAIT_READ_COMPLETION;
+      
+    p2l_dma_adr_o <= p2l_dma_adr_s;
+    p2l_dma_dat_s <= to_wb_fifo_dout(63 downto 0);
+    p2l_dma_sel_o <= p2l_dma_sel_s;
+    p2l_dma_cyc_o <= p2l_dma_cyc_s;
   ------------------------------------------------------------------------------
   -- Active high reset for fifo
   ------------------------------------------------------------------------------
@@ -502,6 +513,10 @@ begin
           when "110" =>
             if pd_pdm_data_valid_w_i(1) = '1' then next_item_host_addr_h_o <= pd_pdm_data_i(63 downto 32); end if; -- 2
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_host_addr_l_o <= pd_pdm_data_i(31 downto 0); end if; -- 1
+            
+            -- Needed if the new carrier address is received before the old one is latched into the FIFO
+            next_item_carrier_addr_o <= next_item_carrier_addr_temp;
+            
           when "101" =>
             if pd_pdm_data_valid_w_i(1) = '1' then next_item_len_o <= pd_pdm_data_i(63 downto 32); end if; -- 3
             if pd_pdm_data_valid_w_i(0) = '1' then next_item_host_addr_h_o <= pd_pdm_data_i(31 downto 0); end if; -- 2
@@ -528,9 +543,7 @@ begin
       -- Make the sg_item_received_s signal a one clock pulse
       if (sg_item_received_s = '1') then
         sg_item_received_s <='0';
-        
-        -- Needed if the new carrier address is received before the old one is latched into the FIFO
-        next_item_carrier_addr_o <= next_item_carrier_addr_temp;
+
       end if;
 
     end if;
@@ -640,8 +653,8 @@ begin
     if (rst_n_i = c_RST_ACTIVE) then
       p2l_dma_cyc_t <= '0';
       p2l_dma_stb_t <= '0';
-      p2l_dma_sel_o <= (others => '0');
-      p2l_dma_adr_o <= (others => '0');
+      p2l_dma_sel_s <= (others => '0');
+      p2l_dma_adr_s <= (others => '0');
       p2l_dma_dat_o <= (others => '0');
       p2l_dma_stall_d <= (others => '0');
     elsif rising_edge(p2l_dma_clk_i) then
@@ -650,16 +663,16 @@ begin
       -- data and address
       if (to_wb_fifo_valid = '1') then
         --p2l_dma_adr_o(31 downto 30) <= "00";
-		p2l_dma_adr_o(31 downto 0) <= to_wb_fifo_dout(95 downto 64);
+		p2l_dma_adr_s(31 downto 0) <= to_wb_fifo_dout(95 downto 64);
         p2l_dma_dat_o <= to_wb_fifo_dout(63 downto 0);
       end if;
       -- stb and sel signals management
       if (to_wb_fifo_valid = '1') then  --or (p2l_dma_stall_i = '1' and p2l_dma_stb_t = '1') then
         p2l_dma_stb_t <= '1';
-        p2l_dma_sel_o <= (others => '1');
+        p2l_dma_sel_s <= (others => '1');
       else
         p2l_dma_stb_t <= '0';
-        p2l_dma_sel_o <= (others => '0');
+        p2l_dma_sel_s <= (others => '0');
       end if;
       -- cyc signal management
       if (to_wb_fifo_valid = '1') then
@@ -672,7 +685,7 @@ begin
   end process p_wb_master;
 
   -- for read back
-  p2l_dma_cyc_o <= p2l_dma_cyc_t;
+  p2l_dma_cyc_s <= p2l_dma_cyc_t;
   p2l_dma_stb_o <= p2l_dma_stb_t;
 
   -- Wishbone write cycle counter
@@ -699,6 +712,32 @@ begin
     end if;
   end process p_wb_ack_cnt;
       
-
+  dbg_p2l: if DEBUG_C = '1' generate
+    debug_p2l: ila_p2l
+    PORT MAP (
+      clk => clk_i,
+      probe0(0) => rst_n_i,
+      
+      probe1 => dma_ctrl_carrier_addr_i, 
+      probe2 => dma_ctrl_host_addr_h_i, 
+      probe3 => dma_ctrl_host_addr_l_i,
+      probe4 => dma_ctrl_host_addr_h_i, 
+      
+      probe5 => dma_ctrl_len_i,
+      probe6(0) => dma_ctrl_start_p2l_i,
+      probe7(0) => dma_ctrl_start_next_i,
+      probe8 => p2l_dma_adr_s,
+      probe9 => p2l_dma_dat_s,
+      probe13 => std_logic_vector(target_addr_cnt),
+      probe14 => pd_pdm_data_i,
+      probe10 => p2l_dma_sel_s,
+      probe11(0) => p2l_dma_cyc_s,
+      probe12 => p2l_dma_state_s,
+      probe15(0) => to_wb_fifo_wr,
+      probe16(0) => to_wb_fifo_rd,
+      probe17(0) => to_wb_fifo_full,
+      probe18(0) => to_wb_fifo_empty
+    );
+  end generate dbg_p2l;
+  
 end behaviour;
-

@@ -201,7 +201,7 @@ architecture Behavioral of top_level is
     
     component app is
         Generic( 
-                DEBUG_C : std_logic_vector(3 downto 0) := "0010"; 
+                DEBUG_C : std_logic_vector(3 downto 0) := "0000"; 
                 address_mask_c : STD_LOGIC_VECTOR(32-1 downto 0) := X"000FFFFF"; 
                 DMA_MEMORY_SELECTED : string := "BRAM" -- DDR3, BRAM, DEMUX 
         );
@@ -476,7 +476,7 @@ begin
       
       app_0:app
       Generic map( 
-	   DEBUG_C => "0010",
+	   DEBUG_C => "0000",
         address_mask_c => X"000FFFFF",
         DMA_MEMORY_SELECTED => "BRAM" -- DDR3, BRAM 
         )

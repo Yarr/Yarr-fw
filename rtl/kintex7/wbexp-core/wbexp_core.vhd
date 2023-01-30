@@ -25,7 +25,8 @@ use work.wshexp_core_pkg.ALL;
 
 entity wshexp_core is
     Generic(
-        AXI_BUS_WIDTH : integer := 64
+        AXI_BUS_WIDTH : integer := 64;
+        DEBUG_C : std_logic 
     );
     Port ( 
         clk_i    : in STD_LOGIC; --! PCIe user clock 250 MHz
@@ -427,7 +428,8 @@ begin
 	p2l_dma:p2l_dma_master
 	  generic map (
 		-- Enable byte swap module (if false, no swap)
-		g_BYTE_SWAP => false
+		g_BYTE_SWAP => false,
+		DEBUG_C => DEBUG_C
 		)
 	  port map
 		(
@@ -509,6 +511,9 @@ begin
 
 
 	l2p_dma : l2p_dma_master
+	Generic map(
+	   DEBUG_C => DEBUG_C
+	)
 	port map
 	(
 		clk_i   => clk_i,
@@ -575,6 +580,9 @@ begin
 	);
 	
 	dma_ctrl:dma_controller
+      Generic map(
+          DEBUG_C => DEBUG_C
+          )
       port map
         (
           ---------------------------------------------------------

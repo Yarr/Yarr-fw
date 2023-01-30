@@ -20,7 +20,8 @@ entity l2p_dma_master is
         g_BYTE_SWAP : boolean := true;
 		axis_data_width_c : integer := 64;
 		wb_address_width_c : integer := 64;
-		wb_data_width_c : integer := 64
+		wb_data_width_c : integer := 64;
+		DEBUG_C : std_logic 
     );
     port (
         -- GN4124 core clk and reset
@@ -196,7 +197,12 @@ architecture behavioral of l2p_dma_master is
 	signal l2p_cyc_cnt     : unsigned(12 downto 0);
 	signal wb_cyc_cnt	   : unsigned(12 downto 0);
 	
+	------------
+	-- Debug signals
+	------------
 	signal l2p_current_state_s : std_logic_vector(2 downto 0);
+	signal l2p_dma_adr_s : std_logic_vector(wb_address_width_c-1 downto 0);
+  signal l2p_dma_dat_s : std_logic_vector(wb_data_width_c-1 downto 0);
 
 begin    
     --DEBUG
@@ -204,6 +210,8 @@ begin
     l2p_len_cnt_do  <= l2p_len_cnt;
     l2p_timeout_cnt_do <= l2p_timeout_cnt;
     wb_timeout_cnt_do  <= wb_timeout_cnt;
+    l2p_dma_adr_o <= l2p_dma_adr_s;
+    l2p_dma_dat_s <= l2p_dma_dat_i;
     
     l2p_current_state_do <= l2p_current_state_s;
     
@@ -562,12 +570,12 @@ begin
             addr_fifo_rd <= '0';
             wb_read_cnt <= (others => '0');
             wb_ack_cnt <= (others => '0');
-            l2p_dma_adr_o <= (others => '0');
+            l2p_dma_adr_s <= (others => '0');
             wb_timeout_cnt <= (others => '0');
             
         elsif rising_edge(l2p_dma_clk_i) then
 			l2p_dma_sel_o <= (others => '1');
-			l2p_dma_adr_o <= addr_fifo_dout;
+			l2p_dma_adr_s <= addr_fifo_dout;
 			
 			if (addr_fifo_valid = '1') then
 				addr_fifo_rd <= '1';
@@ -655,25 +663,27 @@ begin
         valid => open,
         prog_full => data_fifo_full
     );
-
-  debug_l2p : ila_l2p
-  PORT MAP (
-    clk => clk_i,
-    probe0(0) => rst_n_i,
-    
-    probe1 => l2p_current_state_s, 
-    probe2(0) => dma_ctrl_start_l2p_i, 
-    probe3 => dma_ctrl_target_addr_i,
-    probe4 => dma_ctrl_host_addr_h_i, 
-    
-    probe5 => dma_ctrl_host_addr_l_i,
-    probe6 => dma_ctrl_len_i,
-    probe7(0) => ldm_arb_valid,
-    probe8 => ldm_arb_data_l,
-    probe9 => std_logic_vector(l2p_len_cnt),
-    
-    probe10 => std_logic_vector(l2p_data_cnt)
-    
-  );
-
+--  dbg_l2p: if DEBUG_C = '1' generate
+--    debug_l2p: ila_l2p
+--    PORT MAP (
+--      clk => clk_i,
+--      probe0(0) => rst_n_i,
+      
+--      probe1 => l2p_current_state_s, 
+--      probe2(0) => dma_ctrl_start_l2p_i, 
+--      probe3 => dma_ctrl_target_addr_i,
+--      probe4 => dma_ctrl_host_addr_h_i, 
+      
+--      probe5 => dma_ctrl_host_addr_l_i,
+--      probe6 => dma_ctrl_len_i,
+--      probe7(0) => ldm_arb_valid,
+--      probe8 => ldm_arb_data_l,
+--      probe9 => std_logic_vector(l2p_len_cnt),
+      
+--      probe10 => std_logic_vector(l2p_data_cnt),
+--      probe11 => l2p_dma_adr_s,
+--      probe12 =>l2p_dma_dat_s
+      
+--    );
+--  end generate dbg_l2p;
 end behavioral;

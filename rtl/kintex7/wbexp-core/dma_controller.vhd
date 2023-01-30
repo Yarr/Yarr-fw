@@ -41,6 +41,9 @@ use work.wshexp_core_pkg.all;
 
 
 entity dma_controller is
+  Generic(
+      DEBUG_C : std_logic
+      );
   port
     (
       ---------------------------------------------------------
@@ -176,6 +179,20 @@ architecture behaviour of dma_controller is
     );
   
   end component fifo_32x32;
+  
+  COMPONENT fifo_32x512_common_clk
+    PORT (
+      clk : IN STD_LOGIC;
+      srst : IN STD_LOGIC;
+      din : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
+      wr_en : IN STD_LOGIC;
+      rd_en : IN STD_LOGIC;
+      dout : OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+      full : OUT STD_LOGIC;
+      empty : OUT STD_LOGIC;
+      almost_empty : OUT STD_LOGIC
+    );
+  END COMPONENT;
   ------------------------------------------------------------------------------
   -- Constants declaration
   ------------------------------------------------------------------------------
@@ -257,8 +274,9 @@ architecture behaviour of dma_controller is
   -- Debug signals
   signal dma_state_probe : std_logic_vector(2 downto 0);
   signal item_count      : std_logic_vector(31 downto 0);
+  signal llist_FIFO_size : std_logic_vector(31 downto 0);
+  signal llist_FIFO_depth: std_logic_vector(15 downto 0);
   
-
 begin
   
   -- Creates an active high reset for fifos regardless of c_RST_ACTIVE value
@@ -273,6 +291,7 @@ begin
     rst_n_i when '0',
     '1' when '1';
   end generate;
+  
   
   dma_ctrl_do <= dma_ctrl;
   dma_stat_do <= dma_stat;
@@ -351,22 +370,44 @@ begin
     dma_attrib_load_o  => dma_attrib_load
     );
 
-
-  fifo_llist_gen: for i in 0 to 6 generate
-    fifo_llist_instatiation : fifo_32x32
-      port map ( 
-        clk => clk_i,
-        srst => fifo_rst,
-        din => dma_fifo_llist_in((i+1)*32-1 downto i*32),
-        wr_en => dma_fifo_llist_wren,
-        rd_en => dma_fifo_llist_rden,
-        dout => dma_fifo_llist_out((i+1)*32-1 downto i*32),
-        full => dma_fifo_llist_full(i),
-        empty => dma_fifo_llist_empty(i),
-        almost_empty => dma_fifo_llist_almost_empty(i)
-      );
-  end generate fifo_llist_gen;
-
+--  -- Change the size of the FIFO depending on the DEBUG variable to have enough space for the ilas
+--  gen_32x32_FIFO: if DEBUG_C = '1' generate
+--    llist_FIFO_size <= X"00000380"; -- FIFO depth * item size in 32bit word (32*28)
+--    fifo_llist_gen: for i in 0 to 6 generate
+--      fifo_llist_instatiation : fifo_32x32
+--        port map ( 
+--          clk => clk_i,
+--          srst => fifo_rst,
+--          din => dma_fifo_llist_in((i+1)*32-1 downto i*32),
+--          wr_en => dma_fifo_llist_wren,
+--          rd_en => dma_fifo_llist_rden,
+--          dout => dma_fifo_llist_out((i+1)*32-1 downto i*32),
+--          full => dma_fifo_llist_full(i),
+--          empty => dma_fifo_llist_empty(i),
+--          almost_empty => dma_fifo_llist_almost_empty(i)
+--        );
+--    end generate fifo_llist_gen;
+--  end generate gen_32x32_FIFO;
+  
+--  gen_32x512_FIFO: if DEBUG_C = '0' generate
+    llist_FIFO_size <= X"00003800"; -- FIFO depth * item size in 32bit word (512*28)
+    llist_FIFO_depth <= X"0200";
+    fifo_llist_gen: for i in 0 to 6 generate
+      fifo_llist_instatiation : fifo_32x512_common_clk
+        port map ( 
+          clk => clk_i,
+          srst => fifo_rst,
+          din => dma_fifo_llist_in((i+1)*32-1 downto i*32),
+          wr_en => dma_fifo_llist_wren,
+          rd_en => dma_fifo_llist_rden,
+          dout => dma_fifo_llist_out((i+1)*32-1 downto i*32),
+          full => dma_fifo_llist_full(i),
+          empty => dma_fifo_llist_empty(i),
+          almost_empty => dma_fifo_llist_almost_empty(i)
+        );
+    end generate fifo_llist_gen;
+--  end generate gen_32x512_FIFO;
+  
   ------------------------------------------------------------------------------
   -- DMA controller registers
   ------------------------------------------------------------------------------
@@ -553,8 +594,8 @@ begin
           dma_ctrl_current_state <= DMA_CHAIN;
           dma_ctrl_host_addr_h_o <= dma_nexth_out_s;
           dma_ctrl_host_addr_l_o <= dma_nextl_out_s;
-          if(unsigned(dma_attrib_out_s(17 downto 2)) > 32) then
-            dma_ctrl_len_o <= X"00000380"; -- FIFO size * item size (32*28)
+          if(unsigned(dma_attrib_out_s(17 downto 2)) > unsigned(llist_FIFO_depth)) then
+            dma_ctrl_len_o <= llist_FIFO_size;
           else
             dma_ctrl_len_o         <= std_logic_vector(unsigned(dma_attrib_out_s(17 downto 2))*28);
           end if;
@@ -623,34 +664,35 @@ begin
     end if;
   end process p_fsm;
 
-  debug_linkedlist : ila_llist_fifo
-  PORT MAP (
-    clk => clk_i,
-  
-    probe0(0) => fifo_rst, 
-    probe1(0) => dma_fifo_llist_wren, 
-    probe2(0) => dma_fifo_llist_rden, 
-    probe3 => dma_fifo_llist_full, 
-    probe4 => dma_fifo_llist_empty, 
+dbg_dma_controller: if DEBUG_C = '1' generate
+    debug_linkedlist : ila_llist_fifo
+    PORT MAP (
+      clk => clk_i,
     
-    probe5 => dma_fifo_llist_in,
-    
-    probe6 => dma_fifo_llist_out(223 downto 192), 
-    probe7 => dma_fifo_llist_out(191 downto 160), 
-    probe8 => dma_fifo_llist_out(159 downto 128), 
-    probe9 => dma_fifo_llist_out(127 downto 96), 
-    probe10 => dma_fifo_llist_out(95 downto 64), 
-    probe11 => dma_fifo_llist_out(63 downto 32),
-    probe12 => dma_fifo_llist_out(31 downto 0),
-    probe13(0) => sg_item_received_i,
-    probe14 => dma_state_probe,
-    probe15 => dma_ctrl_reg,
-    probe16 => dma_stat_reg,
-    probe17 => dma_attrib_reg,
-    probe18 => dma_fifo_llist_almost_empty,
-    probe19(0) => dma_ctrl_done_i,
-    probe20 => item_count,
-    probe21 => dma_start_delay_s
-  );
-
+      probe0(0) => fifo_rst, 
+      probe1(0) => dma_fifo_llist_wren, 
+      probe2(0) => dma_fifo_llist_rden, 
+      probe3 => dma_fifo_llist_full, 
+      probe4 => dma_fifo_llist_empty, 
+      
+      probe5 => dma_fifo_llist_in,
+      
+      probe6 => dma_fifo_llist_out(223 downto 192), 
+      probe7 => dma_fifo_llist_out(191 downto 160), 
+      probe8 => dma_fifo_llist_out(159 downto 128), 
+      probe9 => dma_fifo_llist_out(127 downto 96), 
+      probe10 => dma_fifo_llist_out(95 downto 64), 
+      probe11 => dma_fifo_llist_out(63 downto 32),
+      probe12 => dma_fifo_llist_out(31 downto 0),
+      probe13(0) => sg_item_received_i,
+      probe14 => dma_state_probe,
+      probe15 => dma_ctrl_reg,
+      probe16 => dma_stat_reg,
+      probe17 => dma_attrib_reg,
+      probe18 => dma_fifo_llist_almost_empty,
+      probe19(0) => dma_ctrl_done_i,
+      probe20 => item_count,
+      probe21 => dma_start_delay_s
+    );
+  end generate dbg_dma_controller;
 end behaviour;
