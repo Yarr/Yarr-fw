@@ -164,21 +164,6 @@ architecture behaviour of dma_controller is
   ------------------------------------------------------------------------------
   -- linked list fifo component declaration
   ------------------------------------------------------------------------------
-
-  component fifo_32x32 is
-    Port ( 
-      clk : in STD_LOGIC;
-      srst : in STD_LOGIC;
-      din : in STD_LOGIC_VECTOR ( 31 downto 0 );
-      wr_en : in STD_LOGIC;
-      rd_en : in STD_LOGIC;
-      dout : out STD_LOGIC_VECTOR ( 31 downto 0 );
-      full : out STD_LOGIC;
-      empty : out STD_LOGIC;
-      almost_empty : OUT STD_LOGIC
-    );
-  
-  end component fifo_32x32;
   
   COMPONENT fifo_32x512_common_clk
     PORT (
@@ -370,26 +355,6 @@ begin
     dma_attrib_load_o  => dma_attrib_load
     );
 
---  -- Change the size of the FIFO depending on the DEBUG variable to have enough space for the ilas
---  gen_32x32_FIFO: if DEBUG_C = '1' generate
---    llist_FIFO_size <= X"00000380"; -- FIFO depth * item size in 32bit word (32*28)
---    fifo_llist_gen: for i in 0 to 6 generate
---      fifo_llist_instatiation : fifo_32x32
---        port map ( 
---          clk => clk_i,
---          srst => fifo_rst,
---          din => dma_fifo_llist_in((i+1)*32-1 downto i*32),
---          wr_en => dma_fifo_llist_wren,
---          rd_en => dma_fifo_llist_rden,
---          dout => dma_fifo_llist_out((i+1)*32-1 downto i*32),
---          full => dma_fifo_llist_full(i),
---          empty => dma_fifo_llist_empty(i),
---          almost_empty => dma_fifo_llist_almost_empty(i)
---        );
---    end generate fifo_llist_gen;
---  end generate gen_32x32_FIFO;
-  
---  gen_32x512_FIFO: if DEBUG_C = '0' generate
     llist_FIFO_size <= X"00003800"; -- FIFO depth * item size in 32bit word (512*28)
     llist_FIFO_depth <= X"0200";
     fifo_llist_gen: for i in 0 to 6 generate
@@ -406,7 +371,6 @@ begin
           almost_empty => dma_fifo_llist_almost_empty(i)
         );
     end generate fifo_llist_gen;
---  end generate gen_32x512_FIFO;
   
   ------------------------------------------------------------------------------
   -- DMA controller registers
@@ -492,7 +456,7 @@ begin
   ------------------------------------------------------------------------------
   dma_ctrl_irq_o <= dma_error_irq & dma_done_irq;
 
-------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
   -- DMA controller FSM
   ------------------------------------------------------------------------------
   p_fsm : process (clk_i, rst_n_i)
