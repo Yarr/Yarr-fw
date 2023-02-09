@@ -536,7 +536,8 @@ package wshexp_core_pkg is
       probe18 : IN STD_LOGIC_VECTOR(6 DOWNTO 0);
       probe19 : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
       probe20 : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
-      probe21 : IN STD_LOGIC_VECTOR(1 DOWNTO 0)
+      probe21 : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
+      probe22 : IN STD_LOGIC_VECTOR(0 DOWNTO 0)
 
     );
     END COMPONENT  ;

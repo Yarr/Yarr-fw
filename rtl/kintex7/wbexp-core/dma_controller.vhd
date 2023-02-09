@@ -105,7 +105,6 @@ end dma_controller;
 
 architecture behaviour of dma_controller is
 
-
   ------------------------------------------------------------------------------
   -- Wishbone slave component declaration
   ------------------------------------------------------------------------------
@@ -186,7 +185,13 @@ architecture behaviour of dma_controller is
   constant c_BUSY  : std_logic_vector(2 downto 0) := "010";
   constant c_ERROR : std_logic_vector(2 downto 0) := "011";
   constant c_ABORT : std_logic_vector(2 downto 0) := "100";
-
+  
+  constant c_llist_FIFO_depth: std_logic_vector(15 downto 0) := X"0200";
+  constant c_llist_FIFO_size : std_logic_vector(31 downto 0) := X"00003800";-- FIFO depth * item size in 32bit word (512*28)
+  
+  -- Maximum number of complete items in a PCIe transaction, depend on the PCIe max packet size
+  constant c_MAX_ITEM_REQ     : unsigned(9 downto 0) := to_unsigned(1022, 10);
+  constant c_MAX_ITEM_REQ_SIZE: std_logic_vector(31 downto 0) := X"00000FF8"; -- MAX_ITEM_REQ * item size in 32 bits word (146*28)
   ------------------------------------------------------------------------------
   -- Signals declaration
   ------------------------------------------------------------------------------
@@ -259,8 +264,6 @@ architecture behaviour of dma_controller is
   -- Debug signals
   signal dma_state_probe : std_logic_vector(2 downto 0);
   signal item_count      : std_logic_vector(31 downto 0);
-  signal llist_FIFO_size : std_logic_vector(31 downto 0);
-  signal llist_FIFO_depth: std_logic_vector(15 downto 0);
   
 begin
   
@@ -355,8 +358,6 @@ begin
     dma_attrib_load_o  => dma_attrib_load
     );
 
-    llist_FIFO_size <= X"00003800"; -- FIFO depth * item size in 32bit word (512*28)
-    llist_FIFO_depth <= X"0200";
     fifo_llist_gen: for i in 0 to 6 generate
       fifo_llist_instatiation : fifo_32x512_common_clk
         port map ( 
@@ -484,6 +485,7 @@ begin
         when DMA_IDLE =>
           -- Clear done irq to make it 1 tick pulse
           dma_done_irq <= '0';
+          dma_fifo_llist_rden <= '0';
           item_count <= (others=>'0');
 
           if(dma_ctrl_reg(0) = '1') then
@@ -558,11 +560,19 @@ begin
           dma_ctrl_current_state <= DMA_CHAIN;
           dma_ctrl_host_addr_h_o <= dma_nexth_out_s;
           dma_ctrl_host_addr_l_o <= dma_nextl_out_s;
-          if(unsigned(dma_attrib_out_s(17 downto 2)) > unsigned(llist_FIFO_depth)) then
-            dma_ctrl_len_o <= llist_FIFO_size;
+          
+          if(unsigned(c_llist_FIFO_depth) > c_MAX_ITEM_REQ) then
+            if(unsigned(dma_attrib_out_s(17 downto 2)) > c_MAX_ITEM_REQ) then
+              dma_ctrl_len_o <= c_MAX_ITEM_REQ_SIZE;
+            else
+              dma_ctrl_len_o <= std_logic_vector(unsigned(dma_attrib_out_s(17 downto 2))*28);
+            end if;
+          elsif (unsigned(dma_attrib_out_s(17 downto 2)) > unsigned(c_llist_FIFO_depth)) then
+            dma_ctrl_len_o <= c_llist_FIFO_size;
           else
             dma_ctrl_len_o         <= std_logic_vector(unsigned(dma_attrib_out_s(17 downto 2))*28);
           end if;
+          
           dma_ctrl_start_next_o  <= '1';
           
 
@@ -656,7 +666,8 @@ dbg_dma_controller: if DEBUG_C = '1' generate
       probe18 => dma_fifo_llist_almost_empty,
       probe19(0) => dma_ctrl_done_i,
       probe20 => item_count,
-      probe21 => dma_start_delay_s
+      probe21 => dma_start_delay_s,
+      probe22(0) => next_item_valid_i
     );
   end generate dbg_dma_controller;
 end behaviour;
