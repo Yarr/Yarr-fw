@@ -623,6 +623,9 @@ begin
    end process interrupt_rdy_p;
    
     wb_exp_comp:wshexp_core
+        Generic map(
+              DEBUG_C => '1'
+            )
         Port map( 
             clk_i => wb_clk_s,
             wb_clk_i => wb_clk_s,

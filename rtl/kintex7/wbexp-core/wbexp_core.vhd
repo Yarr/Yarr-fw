@@ -25,7 +25,8 @@ use work.wshexp_core_pkg.ALL;
 
 entity wshexp_core is
     Generic(
-        AXI_BUS_WIDTH : integer := 64
+        AXI_BUS_WIDTH : integer := 64;
+        DEBUG_C : std_logic 
     );
     Port ( 
         clk_i    : in STD_LOGIC; --! PCIe user clock 250 MHz
@@ -64,9 +65,9 @@ entity wshexp_core is
         csr_adr_o   : out std_logic_vector(31 downto 0);  --! CSR Wishbone Bus: Address
         csr_dat_o   : out std_logic_vector(31 downto 0);  --! CSR Wishbone Bus: Data out
         csr_sel_o   : out std_logic_vector(3 downto 0);   --! CSR Wishbone Bus: Byte select
-        csr_stb_o   : out std_logic;                      --! CSR Wishbone Bus: Read or write cycle
+        csr_stb_o   : out std_logic;                      --! CSR Wishbone Bus: Read or write strobe
         csr_we_o    : out std_logic;                      --! CSR Wishbone Bus: Write enable
-        csr_cyc_o   : out std_logic;                      --! CSR Wishbone Bus: Read or write strobe
+        csr_cyc_o   : out std_logic;                      --! CSR Wishbone Bus: Read or write cycle
         csr_dat_i   : in  std_logic_vector(31 downto 0);  --! CSR Wishbone Bus: Data in
         csr_ack_i   : in  std_logic;                      --! CSR Wishbone Bus: Acknoledge
         csr_stall_i : in  std_logic;                      --! CSR Wishbone Bus: for pipelined Wishbone
@@ -232,6 +233,7 @@ architecture Behavioral of wshexp_core is
     signal next_item_next_h_s       : std_logic_vector(31 downto 0);
     signal next_item_attrib_s       : std_logic_vector(31 downto 0);
     signal next_item_valid_s        : std_logic;
+    signal sg_item_received_s       : std_logic;
     
     ---------------------------------------------------------
     -- From L2P DMA master (ldm) to arbiter (arb)
@@ -426,7 +428,8 @@ begin
 	p2l_dma:p2l_dma_master
 	  generic map (
 		-- Enable byte swap module (if false, no swap)
-		g_BYTE_SWAP => false
+		g_BYTE_SWAP => false,
+		DEBUG_C => DEBUG_C
 		)
 	  port map
 		(
@@ -502,11 +505,15 @@ begin
 		  next_item_next_l_o       => next_item_next_l_s,
 		  next_item_next_h_o       => next_item_next_h_s,
 		  next_item_attrib_o       => next_item_attrib_s,
-		  next_item_valid_o        => next_item_valid_s
+		  next_item_valid_o        => next_item_valid_s,
+		  sg_item_received_o       => sg_item_received_s
 		  );
 
 
 	l2p_dma : l2p_dma_master
+	Generic map(
+	   DEBUG_C => DEBUG_C
+	)
 	port map
 	(
 		clk_i   => clk_i,
@@ -573,6 +580,9 @@ begin
 	);
 	
 	dma_ctrl:dma_controller
+      Generic map(
+          DEBUG_C => DEBUG_C
+          )
       port map
         (
           ---------------------------------------------------------
@@ -608,6 +618,7 @@ begin
           next_item_next_h_i       => next_item_next_h_s,
           next_item_attrib_i       => next_item_attrib_s,
           next_item_valid_i        => next_item_valid_s,
+          sg_item_received_i       => sg_item_received_s,
 
           ---------------------------------------------------------
           -- Wishbone slave interface

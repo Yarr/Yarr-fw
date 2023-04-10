@@ -175,7 +175,8 @@ package app_pkg is
 
     component wshexp_core is
         Generic(
-            AXI_BUS_WIDTH : integer := 64
+            AXI_BUS_WIDTH : integer := 64;
+            DEBUG_C : std_logic := '0'
         );
         Port ( 
             clk_i : in STD_LOGIC;

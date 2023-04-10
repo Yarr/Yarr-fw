@@ -8,6 +8,7 @@ files = [
 "clk_200_gen/clk_200_gen.xci",
 "fifo_256x16/fifo_256x16.xci",
 "fifo_32x512/fifo_32x512.xci",
+"fifo_32x32/fifo_32x32.xci",
 "fifo_64x512/fifo_64x512.xci",
 "fifo_96x512_1/fifo_96x512.xci",
 "ila_axis/ila_axis.xci",
@@ -31,6 +32,4 @@ files = [
 "fifo_8x32/fifo_8x32.xci",
 "ila_aurora/ila_aurora.xci",
 ]
-
-
 
